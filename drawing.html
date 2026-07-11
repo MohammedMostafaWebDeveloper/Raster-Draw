@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raster Draw</title>
+    <link rel="icon" type="image/x-icon" href="assets/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="navbar">
+        <div id="logo-con">
+            <img src="assets/logo.png" id="logo">
+            Raster Draw
+        </div>
+        <div id="edit">
+            <button id="undo"><img src="assets/Undo.svg" id="undo-icon"></button>
+            <button id="redo"><img src="assets/Redo.svg" id="redo-icon"></button>
+        </div>
+        <div id="export">
+            <button class="export">File</button>
+            <button class="export">Resize</button>
+            <button class="export colored">Export</button>
+        </div>
+    </div>
+    <div id="content">
+        <div id="toolbar">
+            <div id="tools">
+                <button class="tool-btn selected" id="pencil"><img src="assets/Pencil.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="fill"><img src="assets/Fill.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="eraser"><img src="assets/Eraser.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="line"><img src="assets/Line.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="circle"><img src="assets/Circle.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="rectangle"><img src="assets/Rectangle.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="dropper"><img src="assets/Eye dropper.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="hand"><img src="assets/Hand.svg" class="tool-icon"></button>
+            </div>
+            <div id="colors-con">
+                <input type="color" id="secondary-color" class="color" value="#ffffff">
+                <input type="color" id="primary-color" class="color">
+                <button id="swap-colors" onclick="swap_colors()"><img src="assets/Swap.svg" id="swap-icon"></button>
+            </div>
+        </div>
+        <div id="editor">
+            <canvas id="background"></canvas>
+            <canvas id="layer1"></canvas>
+            <canvas id="effects"></canvas>
+        </div>
+        <div id="rightbar">
+            <div class="bar-title">Tool Options</div>
+            <div id="custbar">
+                <div id="pencil-cust" class="cust-con">
+                    <div class="cust-title">
+                        <label>Size :</label><input type="number" class="size-number" min="1" max="1000" value="1">
+                    </div>
+                    <input type="range" class="size-range" min="1" max="100" value="1">
+                    <hr>
+                    <div class="cust-title">
+                        <label>Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
+                    </div>
+                    <input type="range" class="alpha-range" min="0" max="255" value="255">
+                    <hr>
+                    <div class="cust-title">
+                        <label>Soft Brush : </label><input type="checkbox" class="soft-checkbox">
+                    </div>
+                </div>
+                <div id="fill-cust" class="cust-con" style="display: none;">
+                    <div class="cust-title">
+                        <label class="tolerance-label">Tolerance :</label><input type="number" class="tolerance-number" min="0" max="100" value="50">
+                    </div>
+                    <input type="range" class="tolerance-range" min="0" max="100" value="50">
+                    <hr>
+                    <div class="cust-title">
+                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
+                    </div>
+                    <input type="range" class="alpha-range" min="0" max="255" value="255">
+                </div>
+                <div id="eraser-cust" class="cust-con" style="display: none;">
+                    <div class="cust-title">
+                        <label class="size-label">Size :</label><input type="number" class="size-number" min="1" max="1000" value="1">
+                    </div>
+                    <input type="range" class="size-range" min="1" max="100" value="1">
+                    <hr>
+                    <div class="cust-title">
+                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
+                    </div>
+                    <input type="range" class="alpha-range" min="0" max="255" value="255">
+                    <hr>
+                    <div class="cust-title">
+                        <label>Soft Brush : </label><input type="checkbox" class="soft-checkbox">
+                    </div>
+                </div>
+                <div id="line-cust" class="cust-con" style="display: none;">
+                    <div class="cust-title">
+                        <label class="size-label">Thickness :</label><input type="number" class="thickness-number" min="1" max="1000" value="1">
+                    </div>
+                    <input type="range" class="thickness-range" min="1" max="100" value="1">
+                    <hr>
+                    <div class="cust-title">
+                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
+                    </div>
+                    <input type="range" class="alpha-range" min="0" max="255" value="255">
+                </div>
+                <div id="circle-cust" class="cust-con" style="display: none;">
+                    <div class="cust-title">
+                        <label class="size-label">Thickness :</label><input type="number" class="thickness-number" min="1" max="1000" value="1">
+                    </div>
+                    <input type="range" class="thickness-range" min="1" max="100" value="1">
+                    <hr>
+                    <div class="cust-title">
+                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
+                    </div>
+                    <input type="range" class="alpha-range" min="0" max="255" value="255">
+                </div>
+                <div id="rectangle-cust" class="cust-con" style="display: none;">
+                    <div class="cust-title">
+                        <label class="size-label">Thickness :</label><input type="number" class="thickness-number" min="1" max="1000" value="1">
+                    </div>
+                    <input type="range" class="thickness-range" min="1" max="100" value="1">
+                    <hr>
+                    <div class="cust-title">
+                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
+                    </div>
+                    <input type="range" class="alpha-range" min="0" max="255" value="255">
+                </div>
+                <div id="dropper-cust" class="cust-con" style="display: none;">
+                    No options available
+                </div>
+                <div id="hand-cust" class="cust-con" style="display: none;">
+                    No options available
+                </div>
+            </div>
+            <div class="bar-title">Mirror</div>
+            <div id="mirrorbar">
+                <div class="cust-con">
+                    <div class="cust-title">
+                        <label class="mirrorx-label">Mirror X :</label><input type="checkbox" id="mirrorx-checkbox" min="0" max="255" value="255">
+                    </div>
+                    <hr>
+                    <div class="cust-title">
+                        <label class="mirrory-label">Mirror Y :</label><input type="checkbox" id="mirrory-checkbox" min="0" max="255" value="255">
+                    </div>
+                </div>
+            </div>
+            <div class="bar-title">Layers</div>
+            <div id="layersbar">
+                
+            </div>
+            <div id="layer-tools-con">
+                <div style="display: flex;">
+                    <button class="layer-tool" id="new-layer"><img src="assets/Add.svg"></button>
+                    <button class="layer-tool" id="dublicate-layer"><img src="assets/Dublicate.svg"></button>
+                    <button class="layer-tool" id="layer-up"><img src="assets/Up.svg"></button>
+                    <button class="layer-tool" id="layer-down"><img src="assets/Down.svg"></button>
+                </div>
+                <button class="layer-tool" id="new-layer"><img src="assets/Delete.svg"></button>
+            </div>
+        </div>
+    </div>
+    <script src="scripts/index.js"></script>
+    <script src="scripts/tools.js"></script>
+</body>
+</html>
