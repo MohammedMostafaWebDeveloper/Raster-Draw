@@ -1,5 +1,9 @@
 var is_drawing = false
 
+var before_edit, after_edit
+
+var temp_hand = false
+
 var pos = {x: undefined, y: undefined}
 var pos0 = {x: undefined, y: undefined}
 
@@ -89,10 +93,20 @@ function drawLine(drawing_canvas, x1, y1, x2, y2, color, alpha, thickness) {
         })
     }
 }
-
+function getIndex(x, y) {
+    return (Math.floor(y) * pixels[0] + Math.floor(x)) * 4
+}
 function fill(x, y, color, tolerence, alpha) {
+    updateCombinedCanvas()
     var rect = canvas.getBoundingClientRect()
-    var init_color = c.getImageData(x, y, 1, 1).data
+    var image
+    if (document.querySelector("#fill-cust").querySelector(".ignore-checkbox").checked) {
+        image = c.getImageData(0, 0, canvas.width, canvas.height).data
+    }
+    else {
+        image = cc.getImageData(0, 0, canvas.width, canvas.height).data
+    }
+    var init_color = image.slice(getIndex(x, y), getIndex(x, y) + 4)
     var pixels = [[Math.floor(x), Math.floor(y)]]
     var new_pixels = []
     var visited = new Set()
@@ -113,7 +127,7 @@ function fill(x, y, color, tolerence, alpha) {
             if (new_pixel[0] < 0 || new_pixel[0] > canvas.width - 1 || new_pixel[1] < 0 || new_pixel[1] > canvas.height - 1) {
                 return
             }
-            var new_color = c.getImageData(new_pixel[0], new_pixel[1], 1, 1).data
+            var new_color = image.slice(getIndex(new_pixel[0], new_pixel[1]), getIndex(new_pixel[0], new_pixel[1]) + 4)
             if (colorMatch(new_color, init_color, tolerence)) {
                 pixels.push(new_pixel)
             }
@@ -124,8 +138,6 @@ function fill(x, y, color, tolerence, alpha) {
 function drawRectangle(drawing_canvas, x1, y1, x2, y2, color, alpha, thickness) {
     var start = {x: Math.min(x1, x2), y: Math.min(y1, y2)}
     var end = {x: Math.max(x1, x2), y: Math.max(y1, y2)}
-
-    
 
     if (Math.round(end.x + thickness / 2) - Math.round(start.x - thickness / 2) <= thickness * 2 || Math.round(end.y + thickness / 2) - Math.round(start.y - thickness / 2) <= thickness * 2) {
         start.x = Math.round(start.x - thickness / 2)
@@ -181,7 +193,9 @@ function drawEllipse(drawing_canvas, x1, y1, x2, y2, color, alpha, thickenss) {
     }
     
 }
-
+window.addEventListener("contextmenu", (e) => {
+    e.preventDefault()
+})
 editor.onpointerdown = function (e) {
     var rect = canvas.getBoundingClientRect()
     
@@ -189,9 +203,18 @@ editor.onpointerdown = function (e) {
     pos0.y = (e.clientY - rect.top) / rect.height * canvas.height
 
     is_drawing = true
-    var size = parseInt(document.querySelector("#pencil-cust").querySelector(".size-number").value)
-    var length = -(size - 1) * 0.5
+
+    before_edit = c.getImageData(0, 0, canvas.width, canvas.height).data
+
+    if (e.button == 2) {
+        temp_hand = true;
+        editor.style.cursor = "grabbing"
+        return
+    }
+
     if (selected_tool == "pencil") {
+        var size = parseInt(document.querySelector("#pencil-cust").querySelector(".size-number").value)
+        var length = -(size - 1) * 0.5
         for (var i = 0; i < size; i++) {
             for (var j = 0; j < size; j++) {
                 var x = Math.floor(pos0.x + length + i) + 0.5
@@ -205,9 +228,23 @@ editor.onpointerdown = function (e) {
         
         drawPixel(c, pos0.x, pos0.y, "#000000", parseInt(document.querySelector("#eraser-cust").querySelector(".alpha-number").value))
     }
+    else if (selected_tool == "dropper") {
+        updateCombinedCanvas()
+        var color_data = cc.getImageData(pos0.x, pos0.y, 1, 1).data
+        var color = "#" + color_data[0].toString(16).padStart(2, '0') + color_data[1].toString(16).padStart(2, '0') + color_data[2].toString(16).padStart(2, '0')
+        var dropper_ui = document.querySelector("#dropper-ui")
+        dropper_ui.style.display = "block"
+        dropper_ui.style.setProperty("--base-color", primary_color.value)
+        dropper_ui.style.setProperty("--new-color", color)
+        dropper_ui.style.top = e.clientY + "px"
+        dropper_ui.style.left = e.clientX + "px"
+    }
 }
 
 editor.onpointerup = function(e) {
+    if (temp_hand) {
+        return
+    }
     var rect = canvas.getBoundingClientRect()
     var x = (e.clientX - rect.left) / rect.width * canvas.width
     var y = (e.clientY - rect.top) / rect.height * canvas.height
@@ -215,39 +252,66 @@ editor.onpointerup = function(e) {
     if (selected_tool == "fill") {
         fill(x, y, primary_color.value, parseInt(document.querySelector("#fill-cust").querySelector(".tolerance-number").value), parseInt(document.querySelector("#fill-cust").querySelector(".alpha-number").value))
     }
-    else if (selected_tool == "dropper") {
-        var color = c.getImageData(x, y, 1, 1).data
-        var r = color[0].toString(16).padStart(2, '0')
-        var g = color[1].toString(16).padStart(2, '0')
-        var b = color[2].toString(16).padStart(2, '0')
-        primary_color.value = "#" + r + g + b
+    else if (selected_tool == "zoom") {
+        var amount = document.querySelector("#zoom-cust").querySelector(".zoom-number").value
+        console.log(amount)
+        if (document.querySelector("#zoom-cust").querySelector("#zoomin").checked) {
+            zoomCanvas(amount / 2, e)
+        }
+        else if (document.querySelector("#zoom-cust").querySelector("#zoomout").checked) {
+            zoomCanvas(-amount / 2, e)
+        }
+        
     }
-    
 }
 window.onpointerup = function (e) {
+    
+    setCursor()
     var rect = canvas.getBoundingClientRect()
     pos.x = (e.clientX - rect.left) / rect.width * canvas.width
     pos.y = (e.clientY - rect.top) / rect.height * canvas.height
-    if (selected_tool == "line" && is_drawing) {
+    if (selected_tool == "line" && is_drawing && !temp_hand) {
         drawLine(c, pos0.x, pos0.y, pos.x, pos.y, primary_color.value, parseInt(document.querySelector("#line-cust").querySelector(".alpha-number").value), parseInt(document.querySelector("#line-cust").querySelector(".thickness-number").value))
     }
-    else if (selected_tool == "rectangle" && is_drawing) {
+    else if (selected_tool == "rectangle" && is_drawing && !temp_hand) {
         var alpha = parseInt(document.querySelector("#rectangle-cust").querySelector(".alpha-number").value)
         var thickness = parseInt(document.querySelector("#rectangle-cust").querySelector(".thickness-number").value)
         drawRectangle(c, pos0.x, pos0.y, pos.x, pos.y, primary_color.value, alpha, thickness)
     }
-    else if (selected_tool == "circle" && is_drawing) {
+    else if (selected_tool == "circle" && is_drawing && !temp_hand) {
         drawEllipse(c, pos0.x, pos0.y, pos.x, pos.y, primary_color.value, parseInt(document.querySelector("#circle-cust").querySelector(".alpha-number").value), parseInt(document.querySelector("#circle-cust").querySelector(".thickness-number").value))
+    }
+    else if (selected_tool == "dropper") {
+        var dropper_ui = document.querySelector("#dropper-ui")
+        dropper_ui.style.display = "none"
+        var color_data = cc.getImageData(pos.x, pos.y, 1, 1).data
+        var color = "#" + color_data[0].toString(16).padStart(2, '0') + color_data[1].toString(16).padStart(2, '0') + color_data[2].toString(16).padStart(2, '0')
+        primary_color.value = color
     }
     pos0.x = (e.clientX - rect.left) / rect.width * canvas.width
     pos0.y = (e.clientY - rect.top) / rect.height * canvas.height
+    if (is_drawing) {
+        after_edit = c.getImageData(0, 0, canvas.width, canvas.height).data
     
-    is_drawing = false
-    stroke_visited.clear()
+        var changes = []
+        for (var i = 0; i < before_edit.length; i++) {
+            if (before_edit[i] != after_edit[i]) {
+                changes.push([i, before_edit[i], after_edit[i]])
+            }
+        }
+        if (changes.length > 0) {
+            undo_list.push([canvas.id, changes])
+            undoCheck()
+        }
 
-    if (selected_tool == "hand") {
-        editor.style.cursor = "grab"
+        stroke_visited.clear()
+
+        if (selected_tool == "hand") {
+            editor.style.cursor = "grab"
+        }
     }
+    is_drawing = false
+    temp_hand = false
 
 }
 
@@ -257,12 +321,34 @@ window.onpointermove = function (e) {
     var x = (e.clientX - cerect.left) / cerect.width * canvas.width
     var y = (e.clientY - cerect.top) / cerect.height * canvas.height
 
+    var thickness = 1
+    
+    if (selected_tool == "pencil") {
+        thickness = parseInt(document.querySelector("#pencil-cust").querySelector(".size-number").value)
+    }
+    else if (selected_tool == "eraser") {
+        thickness = parseInt(document.querySelector("#eraser-cust").querySelector(".size-number").value)
+    }
+    else if (selected_tool == "hand") {
+        thickness = 0
+    }
+    var length = (thickness - 1) / 2
     ce.fillStyle = "rgba(125, 125, 125, 0.5)"
-    ce.fillRect(Math.floor(x), Math.floor(y), 1, 1)
+    ce.fillRect(Math.floor(x - length), Math.floor(y - length), thickness, thickness)
 
     var rect = canvas.getBoundingClientRect()
     pos.x = (e.clientX - rect.left) / rect.width * canvas.width
     pos.y = (e.clientY - rect.top) / rect.height * canvas.height
+    if (temp_hand) {
+        editor.style.cursor = "grabbing"
+        tx += (pos.x - pos0.x) * rect.width / canvas.width
+        ty += (pos.y - pos0.y) * rect.height / canvas.height
+
+        editor.style.setProperty("--translateX", tx + "px")
+        editor.style.setProperty("--translateY", ty + "px")
+        return
+    }
+    
     if (is_drawing) {
 
         if (selected_tool == "pencil") {
@@ -293,6 +379,14 @@ window.onpointermove = function (e) {
 
             editor.style.setProperty("--translateX", tx + "px")
             editor.style.setProperty("--translateY", ty + "px")
+        }
+        else if (selected_tool == "dropper") {
+            var color_data = cc.getImageData(pos.x, pos.y, 1, 1).data
+            var color = "#" + color_data[0].toString(16).padStart(2, '0') + color_data[1].toString(16).padStart(2, '0') + color_data[2].toString(16).padStart(2, '0')
+            var dropper_ui = document.querySelector("#dropper-ui")
+            dropper_ui.style.setProperty("--new-color", color)
+            dropper_ui.style.top = e.clientY + "px"
+            dropper_ui.style.left = e.clientX + "px"
         }
     }   
 }

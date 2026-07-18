@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raster Draw</title>
-    <link rel="icon" type="image/x-icon" href="assets/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,15 +14,17 @@
         <div id="logo-con">
             <img src="assets/logo.png" id="logo">
             Raster Draw
+            <vl></vl>
+            <input id="project-name" placeholder="Untitled Project">
         </div>
         <div id="edit">
-            <button id="undo"><img src="assets/Undo.svg" id="undo-icon"></button>
-            <button id="redo"><img src="assets/Redo.svg" id="redo-icon"></button>
+            <button id="undo" onclick="undo()"><img src="assets/Undo.svg" id="undo-icon"></button>
+            <button id="redo" onclick="redo()"><img src="assets/Redo.svg" id="redo-icon"></button>
         </div>
-        <div id="export">
+        <div id="export-con">
             <button class="export">File</button>
-            <button class="export">Resize</button>
-            <button class="export colored">Export</button>
+            <button class="export" onclick="showResize()">Resize</button>
+            <button class="export colored" onclick="showExport()"><img src="assets/Export.svg">Export</button>
         </div>
     </div>
     <div id="content">
@@ -37,6 +38,7 @@
                 <button class="tool-btn" id="rectangle"><img src="assets/Rectangle.svg" class="tool-icon"></button>
                 <button class="tool-btn" id="dropper"><img src="assets/Eye dropper.svg" class="tool-icon"></button>
                 <button class="tool-btn" id="hand"><img src="assets/Hand.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="zoom"><img src="assets/Zoom.svg" class="tool-icon"></button>
             </div>
             <div id="colors-con">
                 <input type="color" id="secondary-color" class="color" value="#ffffff">
@@ -46,7 +48,9 @@
         </div>
         <div id="editor">
             <canvas id="background"></canvas>
-            <canvas id="layer1"></canvas>
+            <div id="layers">
+                <canvas id="layer1"></canvas>
+            </div>
             <canvas id="effects"></canvas>
         </div>
         <div id="rightbar">
@@ -77,6 +81,10 @@
                         <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
                     </div>
                     <input type="range" class="alpha-range" min="0" max="255" value="255">
+                    <hr>
+                    <div class="cust-title">
+                        <label>Ignore other layers : </label><input type="checkbox" class="ignore-checkbox">
+                    </div>
                 </div>
                 <div id="eraser-cust" class="cust-con" style="display: none;">
                     <div class="cust-title">
@@ -132,6 +140,17 @@
                 <div id="hand-cust" class="cust-con" style="display: none;">
                     No options available
                 </div>
+                <div id="zoom-cust" class="cust-con" style="display: none;">
+                    <div class="cust-title">
+                        <label class="zoom-label">Zoom factor :</label><input type="number" class="zoom-number" min="1" max="10" value="5">
+                    </div>
+                    <input type="range" class="zoom-range" min="1" max="10" value="5">
+                    <hr>
+                    <div class="cust-title">
+                        <input type="radio" id="zoomin" name="zoom" checked><label for="zoomin" class="option"><img src="assets/Zoom In.svg"></label>
+                        <input type="radio" id="zoomout" name="zoom"><label for="zoomout" class="option"><img src="assets/Zoom Out.svg"></label>
+                    </div>
+                </div>
             </div>
             <div class="bar-title">Mirror</div>
             <div id="mirrorbar">
@@ -147,19 +166,68 @@
             </div>
             <div class="bar-title">Layers</div>
             <div id="layersbar">
-                
+                <div class="layer-con active" id="layer-con1" onclick="changeLayer(this, event)" draggable="true" ondragstart="startDrag(this)" ondragend="endDrag(this)" ondblclick="renaming(this, event)">
+                    <button class="layer-tool hide" onclick="show_hide(this)"><img src="assets/Show.svg"></button>
+                    <label class="layer-text">Layer 1</label>
+                    <input class="layer-name hidden" value="Layer 1" onblur="rename(this)" onkeydown="if (event.keyCode == 13) {rename(this)}">
+                </div>
             </div>
             <div id="layer-tools-con">
                 <div style="display: flex;">
-                    <button class="layer-tool" id="new-layer"><img src="assets/Add.svg"></button>
-                    <button class="layer-tool" id="dublicate-layer"><img src="assets/Dublicate.svg"></button>
-                    <button class="layer-tool" id="layer-up"><img src="assets/Up.svg"></button>
-                    <button class="layer-tool" id="layer-down"><img src="assets/Down.svg"></button>
+                    <button class="layer-tool" onclick="newLayer()"><img src="assets/Add.svg"></button>
+                    <button class="layer-tool" onclick="dublicatelayer()"><img src="assets/Dublicate.svg"></button>
+                    <button class="layer-tool" onclick="layerUp()"><img src="assets/Up.svg"></button>
+                    <button class="layer-tool" onclick="layerDown()"><img src="assets/Down.svg"></button>
                 </div>
-                <button class="layer-tool" id="new-layer"><img src="assets/Delete.svg"></button>
+                <button class="layer-tool" id="new-layer" onclick="deleteLayer()"><img src="assets/Delete.svg"></button>
             </div>
         </div>
     </div>
+    <div id="dropper-ui"></div>
+    <div class="cover" id="export-cover" onmousedown="if (event.target == this) {this.classList.add('clicked')}" onclick="hideCover(this, event)">
+        <div id="export-ui">
+            <div class="cust-title">
+                <h3>Export Image</h3>
+                <button class="layer-tool" onclick="this.closest('.cover').classList.remove('popedup')"><img src="assets/Close.svg"></button>
+            </div>
+            <hr>
+            <label class="subtitle">Image format :</label>
+            <div class="cust-title">
+                <input type="radio" id="png" name="format" checked onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="png" class="option">PNG</label>
+                <input type="radio" id="jpeg" name="format" onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="jpeg" class="option">JPEG</label>
+                <input type="radio" id="webp" name="format" onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="webp" class="option">Webp</label>
+                <input type="radio" id="avif" name="format" onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="avif" class="option">AVIF</label>
+            </div>
+            <hr>
+            <label class="subtitle">Image scale :</label>
+            <div class="cust-con" style="gap: 20px; padding: 0; flex-direction: row; justify-content: space-between; align-items: center;">
+                <input style="flex: 1;" type="range" class="scale-range" min="1" max="200" value="10" oninput="updateDim(this)"><input type="number" class="scale-number" min="1" max="200" value="10" oninput="updateDim(this)">
+            </div>
+            <div class="cust-con" style="gap: 20px; padding: 0; flex-direction: row; justify-content: space-between; align-items: center;">
+                <label>Width: <num id="width-num">100px</num> Height <num id="height-num">100px</num></label>
+            </div>
+            <hr>
+            <label class="subtitle">File name :</label>
+            <div class="cust-con" style="gap: 20px; padding: 0; flex-direction: row; justify-content: space-between; align-items: center;">
+                <input class="text" id="file-name" value="Image File" placeholder=""><label id="extension">.png</label>
+            </div>
+            <button class="download" onclick="downloadImage()">Download Image</button>
+        </div>
+    </div>
+    <div class="cover" id="resize-cover" onmousedown="if (event.target == this) {this.classList.add('clicked')}" onclick="hideCover(this, event)">
+        <div id="resize-ui">
+            <div class="cust-title">
+                <h3>Resize Canvas</h3>
+                <button class="layer-tool" onclick="this.closest('.cover').classList.remove('popedup')"><img src="assets/Close.svg"></button>
+            </div>
+            <hr>
+            <div class="cust-title">
+                
+            </div>
+            <button class="resize" onclick="resizeCanvas()">Resize</button>
+        </div>
+    </div>
+    
     <script src="scripts/index.js"></script>
     <script src="scripts/tools.js"></script>
 </body>
