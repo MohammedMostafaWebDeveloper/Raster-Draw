@@ -1,13 +1,4 @@
-var is_drawing = false
 
-var before_edit, after_edit
-
-var temp_hand = false
-
-var pos = {x: undefined, y: undefined}
-var pos0 = {x: undefined, y: undefined}
-
-var stroke_visited = new Set()
 
 function colorMatch(a, b, tolerence) {
     return (
@@ -21,7 +12,7 @@ function colorMatch(a, b, tolerence) {
 function drawPixel(drawing_canvas, x, y, color, alpha) {
     x = Math.floor(x)
     y = Math.floor(y)
-    if (isNaN(x) || isNaN(y) || x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
+    if (isNaN(x) || isNaN(y) || x < 0 || x >= canvas.width || y < 0 || y >= canvas.height || (selection.size > 0 && !selection.has(x + "," + y))) {
         return;
     }
     var key = x + "," + y
@@ -93,9 +84,25 @@ function drawLine(drawing_canvas, x1, y1, x2, y2, color, alpha, thickness) {
         })
     }
 }
-function getIndex(x, y) {
-    return (Math.floor(y) * pixels[0] + Math.floor(x)) * 4
+function selectLine(x1, y1, x2, y2) {
+    var dx = -Math.floor(x1) + Math.floor(x2)
+    var dy = -Math.floor(y1) + Math.floor(y2)
+
+    var steps = Math.max(Math.abs(dx), Math.abs(dy))
+
+    if (steps == 0) {
+        temp_selection.add(Math.floor(x1) + "," + Math.floor(y1))
+        return
+    }
+
+    for (var i = 0; i <= steps; i++) {
+        var x = Math.floor(x1 + dx * (i / steps))
+        var y = Math.floor(y1 + dy * (i / steps))
+        var key = x + "," + y
+        temp_selection.add(key)
+    }
 }
+
 function fill(x, y, color, tolerence, alpha) {
     updateCombinedCanvas()
     var rect = canvas.getBoundingClientRect()
@@ -225,8 +232,15 @@ editor.onpointerdown = function (e) {
         
     }
     else if (selected_tool == "eraser") {
-        
-        drawPixel(c, pos0.x, pos0.y, "#000000", parseInt(document.querySelector("#eraser-cust").querySelector(".alpha-number").value))
+        var size = parseInt(document.querySelector("#eraser-cust").querySelector(".size-number").value)
+        var length = -(size - 1) * 0.5
+        for (var i = 0; i < size; i++) {
+            for (var j = 0; j < size; j++) {
+                var x = Math.floor(pos0.x + length + i) + 0.5
+                var y = Math.floor(pos0.y + length + j) + 0.5
+                drawPixel(c, x, y, "#000000", parseInt(document.querySelector("#pencil-cust").querySelector(".alpha-number").value))
+            }
+        }
     }
     else if (selected_tool == "dropper") {
         updateCombinedCanvas()
@@ -238,6 +252,59 @@ editor.onpointerdown = function (e) {
         dropper_ui.style.setProperty("--new-color", color)
         dropper_ui.style.top = e.clientY + "px"
         dropper_ui.style.left = e.clientX + "px"
+    }
+    
+    else if (selected_tool == "move" || (selected_tool == "select" && ctrlPressed)) {
+        select_start = [pos0.x, pos0.y]
+        if (selection.size == 0) {
+            for (var i = 0; i < pixels[0]; i++) {
+                for (var j = 0; j < pixels[1]; j++) {
+                    selection.add(i + "," + j)
+                }
+            }
+        }
+        if (moving == false) {
+            var image = c.getImageData(0, 0, pixels[0], pixels[1])
+            var data = image.data
+            selected_pixels = [...data].fill(0)
+            selection.forEach(cell => {
+                var [x, y] = cell.split(",").map(Number)
+                var index = getIndex(x, y)
+                selected_pixels[index] = data[index]
+                selected_pixels[index + 1] = data[index + 1]
+                selected_pixels[index + 2] = data[index + 2]
+                selected_pixels[index + 3] = data[index + 3]
+                data[index] = 0
+                data[index + 1] = 0
+                data[index + 2] = 0
+                data[index + 3] = 0
+            })
+            move_pos = [0, 0]
+            pre_selection.clear()
+            pre_selection = new Set(selection)
+            c.putImageData(image, 0, 0)
+            moving = true
+            sm.clearRect(0, 0, pixels[0], pixels[1])
+            var image = sm.getImageData(0, 0, pixels[0], pixels[1])
+            image.data.set(selected_pixels)
+            var offsetX = pos.x - select_start[0]
+            var offsetY = pos.y - select_start[1]
+            sm.putImageData(image, move_pos[0] + offsetX, move_pos[1] + offsetY)   
+            editor.style.cursor = "move"
+        }
+    }
+    else if (selected_tool == "select") {
+        var x = pos0.x
+        var y = pos0.y
+        select_start = [x, y]
+
+        if (document.querySelector("#select-cust").querySelector("#normal-mode").checked) {
+            selection.clear()
+        }
+    }
+    if (selected_tool != "move" && !(selected_tool == "select" && ctrlPressed) && moving == true) {
+        setCursor()
+        placeSelection()
     }
 }
 
@@ -254,14 +321,12 @@ editor.onpointerup = function(e) {
     }
     else if (selected_tool == "zoom") {
         var amount = document.querySelector("#zoom-cust").querySelector(".zoom-number").value
-        console.log(amount)
         if (document.querySelector("#zoom-cust").querySelector("#zoomin").checked) {
             zoomCanvas(amount / 2, e)
         }
         else if (document.querySelector("#zoom-cust").querySelector("#zoomout").checked) {
             zoomCanvas(-amount / 2, e)
         }
-        
     }
 }
 window.onpointerup = function (e) {
@@ -309,9 +374,59 @@ window.onpointerup = function (e) {
         if (selected_tool == "hand") {
             editor.style.cursor = "grab"
         }
+        else if (moving) {
+            move_pos[0] += pos.x - select_start[0]
+            move_pos[1] += pos.y - select_start[1]
+            if (!ctrlPressed) {
+                placeSelection()
+                setCursor()
+            }
+        }
+        else if (selected_tool == "select") {
+            if (select_start[0] != pos.x && select_start[1] != pos.y){
+                if (document.querySelector("#select-cust").querySelector("#lasso-select-option").checked) {
+                    selectLine(pos0.x, pos0.y, select_start[0], select_start[1])
+                }
+                else if (document.querySelector("#select-cust").querySelector("#rectangle-select-option").checked) {
+                    var x1 = Math.min(Math.floor(select_start[0]), Math.floor(pos.x))
+                    var y1 = Math.min(Math.floor(select_start[1]), Math.floor(pos.y))
+                    var x2 = Math.max(Math.floor(select_start[0]), Math.floor(pos.x))
+                    var y2 = Math.max(Math.floor(select_start[1]), Math.floor(pos.y))
+
+                    for (var i = x1; i <= x2; i++) {
+                        for (var j = y1; j <= y2; j++) {
+                            temp_selection.add(i + "," + j)
+                        }
+                    }
+                }
+                else if (document.querySelector("#select-cust").querySelector("#circle-select-option").checked) {
+                    var x1 = Math.min(Math.floor(select_start[0]), Math.floor(pos.x)) + 0.5
+                    var y1 = Math.min(Math.floor(select_start[1]), Math.floor(pos.y)) + 0.5
+                    var x2 = Math.max(Math.floor(select_start[0]), Math.floor(pos.x)) + 0.5
+                    var y2 = Math.max(Math.floor(select_start[1]), Math.floor(pos.y)) + 0.5
+                    var center = [(x1 + x2) / 2, (y1 + y2) / 2]
+                    var radiusX = Math.abs((x1 - x2) / 2)
+                    var radiusY = Math.abs((y1 - y2) / 2)
+                    var increment = 0.8 /(radiusX + radiusY)
+                    for (var i = 0; i < Math.PI / 2; i += increment) {
+                        [1, -1].forEach(cellX => {
+                            [1, -1].forEach(cellY => {
+                                var x = Math.floor(center[0] + Math.cos(i) * cellX * radiusX)
+                                var y = Math.floor(center[1] + Math.sin(i) * cellY * radiusY)
+                                temp_selection.add(x + "," + y)
+                            })
+                        })
+                    }
+                }
+            }
+        }
     }
     is_drawing = false
     temp_hand = false
+
+    updateSelection()
+
+    tc.clearRect(0, 0, trace.width, trace.height)
 
 }
 
@@ -387,6 +502,71 @@ window.onpointermove = function (e) {
             dropper_ui.style.setProperty("--new-color", color)
             dropper_ui.style.top = e.clientY + "px"
             dropper_ui.style.left = e.clientX + "px"
+        }
+        else if (moving) {
+
+            sm.clearRect(0, 0, pixels[0], pixels[1])
+            var image = sm.getImageData(0, 0, pixels[0], pixels[1])
+            image.data.set(selected_pixels)
+            var offsetX = pos.x - select_start[0]
+            var offsetY = pos.y - select_start[1]
+            sm.putImageData(image, Math.floor(move_pos[0] + offsetX), Math.floor(move_pos[1] + offsetY))
+            selection.clear()
+            pre_selection.forEach(cell => {
+                var [x, y] = cell.split(",").map(Number)
+                selection.add(Math.floor(x + move_pos[0] + offsetX) + "," + Math.floor(y + move_pos[1] + offsetY))
+            })
+            drawSelection()
+            editor.style.cursor = "move"
+        }
+        else if (selected_tool == "select") {
+            updateCombinedCanvas()
+            var color = cc.getImageData(pos.x, pos.y, 1, 1).data
+            var r = color[0]
+            var g = color[1]
+            var b = color[2]
+            var a = color[3] / 255
+            r = r * a + 255 * (1 - a)
+            g = g * a + 255 * (1 - a)
+            b = b * a + 255 * (1 - a)
+            var brightness = 0.299 * r + 0.587 * g + 0.114 * b
+            tc.lineWidth = 1.5
+            if (brightness < 128) {
+                tc.strokeStyle = "white"
+            }
+            else {
+                tc.strokeStyle = "black"
+            }
+            
+            if (document.querySelector("#select-cust").querySelector("#lasso-select-option").checked) {
+                
+                tc.beginPath()
+                var point0 = mapPoint(pos0.x, pos0.y)
+                var point = mapPoint(pos.x, pos.y)
+                tc.moveTo(point0[0], point0[1])
+                tc.lineTo(point[0], point[1])
+                tc.stroke()
+                selectLine(pos0.x, pos0.y, pos.x, pos.y)
+                pos0.x = pos.x
+                pos0.y = pos.y
+            }
+            else if (document.querySelector("#select-cust").querySelector("#rectangle-select-option").checked) {
+                tc.clearRect(0, 0, trace.width, trace.height)
+                var [x1, y1, c1] = mapPoint(select_start[0], select_start[1])
+                var [x2, y2, c2] = mapPoint(pos.x, pos.y)
+                tc.strokeRect(x1, y1, x2 - x1, y2 - y1)
+            }
+            else if (document.querySelector("#select-cust").querySelector("#circle-select-option").checked) {
+                tc.clearRect(0, 0, trace.width, trace.height)
+                var [x1, y1, c1] = mapPoint(select_start[0], select_start[1])
+                var [x2, y2, c2] = mapPoint(pos.x, pos.y)
+                var center = [(x1 + x2) / 2, (y1 + y2) / 2]
+                var radiusX = Math.abs((x2 - x1) / 2)
+                var radiusY = Math.abs((y2 - y1) / 2)
+                tc.beginPath()
+                tc.ellipse(center[0], center[1], radiusX, radiusY, 0, 0, Math.PI * 2, false)
+                tc.stroke()
+            }
         }
     }   
 }

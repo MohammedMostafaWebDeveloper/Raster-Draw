@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raster Draw</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
@@ -30,6 +31,8 @@
     <div id="content">
         <div id="toolbar">
             <div id="tools">
+                <button class="tool-btn" id="move"><img src="assets/Move.svg" class="tool-icon"></button>
+                <button class="tool-btn" id="select"><img src="assets/Rectangle select.svg" class="tool-icon"></button>
                 <button class="tool-btn selected" id="pencil"><img src="assets/Pencil.svg" class="tool-icon"></button>
                 <button class="tool-btn" id="fill"><img src="assets/Fill.svg" class="tool-icon"></button>
                 <button class="tool-btn" id="eraser"><img src="assets/Eraser.svg" class="tool-icon"></button>
@@ -50,12 +53,33 @@
             <canvas id="background"></canvas>
             <div id="layers">
                 <canvas id="layer1"></canvas>
+                <canvas id="selection"></canvas>
             </div>
             <canvas id="effects"></canvas>
+            <canvas id="selection-canvas"></canvas>
+            <canvas id="trace"></canvas>
         </div>
         <div id="rightbar">
             <div class="bar-title">Tool Options</div>
             <div id="custbar">
+                <div id="move-cust" class="cust-con" style="display: none;">
+                    No options available
+                </div>
+                <div id="select-cust" class="cust-con" style="display: none;">
+                    <div class="cust-title">
+                        <input type="radio" id="rectangle-select-option" name="select-tool" checked><label for="rectangle-select-option" class="option"><img src="assets/Rectangle Select.svg"></label>
+                        <input type="radio" id="circle-select-option" name="select-tool"><label for="circle-select-option" class="option"><img src="assets/Circle Select.svg"></label>
+                        <input type="radio" id="lasso-select-option" name="select-tool"><label for="lasso-select-option" class="option"><img src="assets/Lasso Select.svg"></label>
+                    </div>
+                    <hr>
+                    <div class="cust-title">
+                        <input type="radio" id="normal-mode" name="select-mode" checked><label for="normal-mode" class="option"><img style="scale: 0.8;" src="assets/Square.svg"></label>
+                        <input type="radio" id="union-mode" name="select-mode"><label for="union-mode" class="option"><img src="assets/Union.svg"></label>
+                        <input type="radio" id="subtract-mode" name="select-mode"><label for="subtract-mode" class="option"><img src="assets/Subtract.svg"></label>
+                        <input type="radio" id="intersect-mode" name="select-mode"><label for="intersect-mode" class="option"><img src="assets/Intersect.svg"></label>
+                        <input type="radio" id="exclude-mode" name="select-mode"><label for="exclude-mode" class="option"><img src="assets/Exclude.svg"></label>
+                    </div>
+                </div>
                 <div id="pencil-cust" class="cust-con">
                     <div class="cust-title">
                         <label>Size :</label><input type="number" class="size-number" min="1" max="1000" value="1">
@@ -81,10 +105,11 @@
                         <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
                     </div>
                     <input type="range" class="alpha-range" min="0" max="255" value="255">
-                    <hr>
+                    <hr>0320
                     <div class="cust-title">
                         <label>Ignore other layers : </label><input type="checkbox" class="ignore-checkbox">
                     </div>
+                    <hr>
                 </div>
                 <div id="eraser-cust" class="cust-con" style="display: none;">
                     <div class="cust-title">
@@ -122,6 +147,10 @@
                         <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
                     </div>
                     <input type="range" class="alpha-range" min="0" max="255" value="255">
+                    <hr>
+                    <div class="cust-title">
+                        <label>Fill : </label><input type="checkbox" class="fill-checkbox">
+                    </div>
                 </div>
                 <div id="rectangle-cust" class="cust-con" style="display: none;">
                     <div class="cust-title">
@@ -133,6 +162,10 @@
                         <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
                     </div>
                     <input type="range" class="alpha-range" min="0" max="255" value="255">
+                    <hr>
+                    <div class="cust-title">
+                        <label>Fill : </label><input type="checkbox" class="fill-checkbox">
+                    </div>
                 </div>
                 <div id="dropper-cust" class="cust-con" style="display: none;">
                     No options available
@@ -167,7 +200,7 @@
             <div class="bar-title">Layers</div>
             <div id="layersbar">
                 <div class="layer-con active" id="layer-con1" onclick="changeLayer(this, event)" draggable="true" ondragstart="startDrag(this)" ondragend="endDrag(this)" ondblclick="renaming(this, event)">
-                    <button class="layer-tool hide" onclick="show_hide(this)"><img src="assets/Show.svg"></button>
+                    <button class="layer-tool hide" onclick="show_hide(this)" style="height: 25px;"><img src="assets/Show.svg"></button>
                     <label class="layer-text">Layer 1</label>
                     <input class="layer-name hidden" value="Layer 1" onblur="rename(this)" onkeydown="if (event.keyCode == 13) {rename(this)}">
                 </div>

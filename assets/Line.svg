@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
-  <path
-    d="M160 480 L480 160"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="48"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 615.5 615.5">
+
+<path
+    fill="#000000"
+    d="M26.750 26.750C35.750 17.750 51.750 17.750 60.750 26.750L588.750 554.750C597.750 563.750 597.750 579.750 588.750 588.750C579.750 597.750 563.750 597.750 554.750 588.750L26.750 60.750C17.750 51.750 17.750 35.750 26.750 26.750Z"
+/>
+
 </svg>

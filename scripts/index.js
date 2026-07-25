@@ -1,5 +1,7 @@
 var pixels = [40, 40]
 
+var ctrlPressed = false
+
 var before_order, after_order
 
 document.querySelectorAll("canvas").forEach(canvas_element => {
@@ -29,8 +31,31 @@ for (var i = 0; i < pixels[0]; i++) {
 var canvas = document.querySelector("#layer1")
 var c = canvas.getContext("2d", {willReadFrequently: true})
 
+var select_move = document.querySelector("#selection")
+var sm = select_move.getContext("2d")
+
 var effects = document.querySelector("#effects")
 var ce = effects.getContext("2d")
+
+var selection_canvas = document.querySelector("#selection-canvas")
+var trace = document.querySelector("#trace")
+var crect = selection_canvas.getBoundingClientRect()
+selection_canvas.width = crect.width
+selection_canvas.height = crect.height
+trace.width = crect.width
+trace.height = crect.height
+var sc = selection_canvas.getContext("2d")
+var tc = trace.getContext("2d")
+
+var observer = new ResizeObserver(entries => {
+    for (var element of entries) {
+        element.target.width = element.contentRect.width
+        element.target.height = element.contentRect.height
+    }
+})
+
+observer.observe(selection_canvas)
+observer.observe(trace)
 
 var combined_canvas = document.createElement("canvas")
 combined_canvas.width = pixels[0]
@@ -56,6 +81,192 @@ var layer_count = 1
 
 c.imageSmoothingEnabled = false
 cc.imageSmoothingEnabled = false
+
+var pre_selection = new Set()
+var selection = new Set()
+var temp_selection = new Set()
+
+var dash_count = 0
+
+var is_drawing = false
+
+var moving = false
+
+var selected_pixels = []
+
+var before_edit, after_edit
+
+var temp_hand = false
+
+var pos = {x: undefined, y: undefined}
+var pos0 = {x: undefined, y: undefined}
+
+var move_pos = [0, 0]
+
+var stroke_visited = new Set()
+
+var select_start
+
+function placeSelection() {
+    c.drawImage(select_move, 0, 0)
+    sm.clearRect(0, 0, canvas.width, canvas.height)
+    selected_pixels = []
+    moving = false
+    move_pos = [0, 0]
+    pre_selection.clear()
+}
+
+function getIndex(x, y) {
+    return (Math.floor(y) * pixels[0] + Math.floor(x)) * 4
+}
+
+function getCoordinates(index) {
+    var pixel = index / 4
+    return [pixel % pixels[0], Math.floor(pixel / pixels[0])]
+}
+
+function mapPoint(x, y) {
+    var rect1 = canvas.getBoundingClientRect()
+    var rect2 = selection_canvas.getBoundingClientRect()
+    x = rect1.left + x * (rect1.width / pixels[0]) - rect2.left
+    y = rect1.top + y * (rect1.height / pixels[1]) - rect2.top
+    return [x, y, rect1.width / pixels[0]]
+}
+
+function selectInside() {
+    for (var i = 0; i < pixels[1]; i++) {
+        var cells = []
+        temp_selection.forEach(cell => {
+            var [x, y] = cell.split(",").map(Number)
+            if (y == i) {
+                cells.push(x)
+            }
+        })
+        cells.sort((a, b) => a - b) // 2 5 9
+        var j = 0
+        while (j + 1 < cells.length) {
+            if (Math.abs(cells[j] - cells[j + 1]) == 1) {
+                j++
+            }
+            else {
+                for (var k = cells[j]; k < cells[j + 1]; k++) {
+                    temp_selection.add(k + "," + i)
+                }
+                j += 2
+            }
+        }
+    }
+}
+
+function updateSelection() {
+    if (temp_selection.size == 0) {
+        return
+    }
+    if (!document.querySelector("#select-cust").querySelector("#rectangle-select-option").checked) {
+        selectInside()
+    }
+    var temp = new Set()
+    temp_selection.forEach(cell => {
+        var [x, y] = cell.split(",").map(Number)
+        if (x < 0 || x >= pixels[0] || y < 0 || y >= pixels[1]) {
+            return
+        }
+        else if (document.querySelector("#select-cust").querySelector("#union-mode").checked
+                || document.querySelector("#select-cust").querySelector("#normal-mode").checked) {
+            selection.add(cell)
+        }
+        else if (document.querySelector("#select-cust").querySelector("#subtract-mode").checked) {
+            selection.delete(cell)
+        }
+        else if (document.querySelector("#select-cust").querySelector("#intersect-mode").checked) {
+            if (selection.has(cell)) {
+                temp.add(cell)
+            }
+        }
+        else if (document.querySelector("#select-cust").querySelector("#intersect-mode").checked) {
+            if (selection.has(cell)) {
+                temp.add(cell)
+            }
+        }
+        else if (document.querySelector("#select-cust").querySelector("#exclude-mode").checked) {
+            if (selection.has(cell)) {
+                selection.delete(cell)
+            }
+            else {
+                selection.add(cell)
+            }
+        }
+    })
+    if (document.querySelector("#select-cust").querySelector("#intersect-mode").checked) {
+        selection = new Set(temp)
+    }
+    temp_selection.clear()
+    drawSelection()
+}
+
+function drawSelection() {
+    sc.clearRect(0, 0, selection_canvas.width, selection_canvas.height)
+    selection.forEach(cell =>{
+        var [ox, oy] = cell.split(",").map(Number)
+        var [x, y, cell_size] = mapPoint(ox, oy)
+        sc.lineWidth = 1;
+        sc.setLineDash([5, 5]);
+        
+        
+        if (selection.has((ox + 1) + "," + oy) == false) {
+            sc.beginPath()
+            sc.moveTo(x + cell_size, y)
+            sc.lineTo(x + cell_size, y + cell_size)
+            sc.lineDashOffset = dash_count;
+            sc.strokeStyle = "black";
+            sc.stroke()
+            sc.lineDashOffset = dash_count + 5;
+            sc.strokeStyle = "white";
+            sc.stroke()
+        }
+        if (selection.has((ox - 1) + "," + oy) == false) {
+            sc.beginPath()
+            sc.moveTo(x, y)
+            sc.lineTo(x, y + cell_size)
+            sc.lineDashOffset = dash_count;
+            sc.strokeStyle = "black";
+            sc.stroke()
+            sc.lineDashOffset = dash_count + 5;
+            sc.strokeStyle = "white";
+            sc.stroke()
+        }
+        if (selection.has(ox + "," + (oy + 1)) == false) {
+            sc.beginPath()
+            sc.moveTo(x, y + cell_size)
+            sc.lineTo(x + cell_size, y + cell_size)
+            sc.lineDashOffset = dash_count;
+            sc.strokeStyle = "black";
+            sc.stroke()
+            sc.lineDashOffset = dash_count + 5;
+            sc.strokeStyle = "white";
+            sc.stroke()
+        }
+        if (selection.has(ox + "," + (oy - 1)) == false) {
+            sc.beginPath()
+            sc.moveTo(x, y)
+            sc.lineTo(x + cell_size, y)
+            sc.lineDashOffset = dash_count;
+            sc.strokeStyle = "black";
+            sc.stroke()
+            sc.lineDashOffset = dash_count + 5;
+            sc.strokeStyle = "white";
+            sc.stroke()
+        }
+
+    })
+}
+
+function animateDashes() {
+    requestAnimationFrame(animateDashes)
+    dash_count = (dash_count - 0.1) % 10
+    drawSelection()
+}
+animateDashes()
 
 function updateCombinedCanvas(width, height, background) {
     if (width && height) {
@@ -124,8 +335,11 @@ function setCursor() {
     else if (selected_tool == "dropper") {
         editor.style.cursor = 'url("assets/Eye dropper.svg") 4 29, auto'
     }
-    else if (selected_tool == "line" || selected_tool == "circle" || selected_tool == "rectangle") {
+    else if (selected_tool == "line" || selected_tool == "circle" || selected_tool == "rectangle" || selected_tool == "select") {
         editor.style.cursor = "crosshair"
+    }
+    else if (selected_tool == "move") {
+        editor.style.cursor = "move"
     }
     else {
         editor.style.cursor = "pointer"
@@ -181,6 +395,15 @@ window.onkeydown = function (e) {
     }
     else if (e.ctrlKey && e.keyCode == 89) {
         redo()
+    }
+    if (e.keyCode == 17) {
+        ctrlPressed = true
+    }
+}
+
+window.onkeyup = function (e) {
+    if (e.keyCode == 17) {
+        ctrlPressed = false
     }
 }
 
@@ -290,7 +513,7 @@ function newLayer() {
         renaming(this, e)
     }
 
-    new_layer.innerHTML = `<button class="layer-tool hide" onclick="show_hide(this)"><img src="assets/Show.svg"></button><label class="layer-text">Layer ${layer_count}</label><input class="layer-name hidden" value="Layer ${layer_count}" onblur="rename(this)" onkeydown="if (event.keyCode == 13) {rename(this)}">`
+    new_layer.innerHTML = `<button class="layer-tool hide" onclick="show_hide(this)" style="height: 25px;"><img src="assets/Show.svg"></button><label class="layer-text">Layer ${layer_count}</label><input class="layer-name hidden" value="Layer ${layer_count}" onblur="rename(this)" onkeydown="if (event.keyCode == 13) {rename(this)}">`
     layers_bar.insertBefore(new_layer, layers_bar.firstChild)
     var new_canvas = document.createElement("canvas")
     new_canvas.id = `layer${layer_count}`
@@ -313,6 +536,7 @@ function changeLayer(layer, e) {
 
     canvas = document.querySelector(`#${canvas_id}`)
     c = canvas.getContext("2d", {willReadFrequently: true})
+    updateCanvases()
 }
 function renaming(layer, e) {
     
@@ -466,6 +690,9 @@ function updateCanvases() {
     [...layers_bar.children].reverse().forEach(layer => {
         var canvas_id = layer.id.replace("-con", "")
         document.querySelector("#layers").appendChild(document.querySelector(`#${canvas_id}`))
+        if (layer.classList.contains("active")) {
+            document.querySelector("#layers").appendChild(document.querySelector('#selection'))
+        }
     })
 }
 function undo() {

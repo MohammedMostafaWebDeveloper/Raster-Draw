@@ -15,6 +15,11 @@ canvas{
     transform: translate(var(--translateX), var(--translateY)) scale(var(--scale));
     touch-action: none;
 }
+#selection-canvas, #trace {
+    width: 100%;
+    height: 100%;
+    transform: none;
+}
 body{
     height: 100vh;
     display: flex;
@@ -55,18 +60,19 @@ body{
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    width: 40px;
+    width: 37px;
     aspect-ratio: 1;
     font-size: 12px;
     border-radius: 10px;
     outline: none;
     cursor: pointer;
+    padding-top: 2px;
 }
 img{
     -webkit-user-drag: none;
 }
 .tool-icon{
-    width: 25px;
+    width: 22px;
     filter: invert(55%) sepia(9%) saturate(308%) hue-rotate(157deg) brightness(94%) contrast(91%);
     margin-bottom: 3px;
 }
@@ -100,7 +106,7 @@ img{
     align-items: center;
     overflow-y: auto;
     overflow-x: hidden;
-    gap: 13px;
+    gap: 10px;
 }
 *::-webkit-scrollbar{
     width: 7px;
@@ -179,7 +185,7 @@ img{
 }
 #swap-icon{
     filter: invert(99%) sepia(78%) saturate(60%) hue-rotate(182deg) brightness(117%) contrast(85%);
-    width: 15px;
+    width: 13px;
 }
 #edit{
     display: flex;
@@ -207,7 +213,7 @@ img{
     scale: 1.05;
 }
 #undo-icon, #redo-icon{
-    width: 27px;
+    width: 23px;
     filter: invert(99%) sepia(78%) saturate(60%) hue-rotate(182deg) brightness(117%) contrast(85%);
 }
 #export-con{
@@ -232,7 +238,7 @@ img{
     transition: 0.1s;
 }
 .export img{
-    height: 25px;
+    height: 22px;
     filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(0%) hue-rotate(288deg) brightness(102%) contrast(102%);
     transition: 0.1s;
 }
@@ -327,19 +333,21 @@ hr{
     justify-content: space-between;
     align-items: center;
     background-color: #2d3033;
-    padding: 5px;
+    padding: 3px;
     border-radius: 0 0 10px 10px;
 }
 .layer-tool{
     background: none;
     outline: none;
     border: none;
-    padding: 2px;
+    padding: 3px;
     transition: 0.05s;
     border-radius: 5px;
     display: flex;
     justify-content: center;
     align-items: center;
+    margin-left: 2px;
+    margin-right: 2px;
 }
 .layer-tool:hover{
     background: #3e4144;
@@ -348,7 +356,7 @@ hr{
     background: #4a4d50;
 }
 .layer-tool img{
-    width: 22px;
+    width: 20px;
     filter: invert(99%) sepia(78%) saturate(60%) hue-rotate(182deg) brightness(117%) contrast(85%);
 }
 #layersbar{
