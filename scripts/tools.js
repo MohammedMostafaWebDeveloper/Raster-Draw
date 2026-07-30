@@ -28,13 +28,13 @@ function drawPixel(drawing_canvas, x, y, color, alpha) {
         drawing_canvas.globalCompositeOperation = "destination-out"
         drawing_canvas.fillStyle = "#000000"
         drawing_canvas.fillRect(x, y, 1, 1)
-        if (mirrorX) {
+        if (mirrorX && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + y)) {
             drawing_canvas.fillRect(canvas.width - 1 - x, y, 1, 1)
         }
-        if (mirrorY) {
+        if (mirrorY && selection.size > 0 && selection.has(x + "," + (canvas.height - 1 - y))) {
             drawing_canvas.fillRect(x, canvas.height - 1 - y, 1, 1)
         }
-        if (mirrorX && mirrorY) {
+        if (mirrorX && mirrorY && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + (canvas.height - 1 - y))) {
             drawing_canvas.fillRect(canvas.width - 1 - x, canvas.height - 1 - y, 1, 1)
         }
         drawing_canvas.restore()
@@ -45,13 +45,13 @@ function drawPixel(drawing_canvas, x, y, color, alpha) {
     if (selected_tool == "hand" || selected_tool == "fill" || selected_tool == "dropper") { 
         return
     }
-    if (mirrorX) {
+    if (mirrorX && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + y)) {
         drawing_canvas.fillRect(canvas.width - 1 - x, y, 1, 1)
     }
-    if (mirrorY) {
+    if (mirrorY && selection.size > 0 && selection.has(x + "," + (canvas.height - 1 - y))) {
         drawing_canvas.fillRect(x, canvas.height - 1 - y, 1, 1)
     }
-    if (mirrorX && mirrorY) {
+    if (mirrorX && mirrorY && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + (canvas.height - 1 - y))) {
         drawing_canvas.fillRect(canvas.width - 1 - x, canvas.height - 1 - y, 1, 1)
     }
 }
@@ -204,6 +204,7 @@ window.addEventListener("contextmenu", (e) => {
     e.preventDefault()
 })
 editor.onpointerdown = function (e) {
+    pause()
     var rect = canvas.getBoundingClientRect()
     
     pos0.x = (e.clientX - rect.left) / rect.width * canvas.width
@@ -377,7 +378,7 @@ window.onpointerup = function (e) {
         else if (moving) {
             move_pos[0] += pos.x - select_start[0]
             move_pos[1] += pos.y - select_start[1]
-            if (!ctrlPressed) {
+            if (!ctrlPressed && selected_tool != "move") {
                 placeSelection()
                 setCursor()
             }

@@ -78,6 +78,7 @@ var tx = 0
 var ty = 0
 var shift = [0, 0]
 var layer_count = 1
+var frame_count = 1
 
 c.imageSmoothingEnabled = false
 cc.imageSmoothingEnabled = false
@@ -107,6 +108,27 @@ var stroke_visited = new Set()
 
 var select_start
 
+var clips = document.querySelector("#clips")
+
+var framesData = {frame1 : {layer1 : new Uint8ClampedArray(pixels[0] * pixels[1] * 4)}}
+
+var playing = false
+
+function changeSelectIcon() {
+    document.getElementsByName("select-tool").forEach(element => {
+        if (element.checked) {
+            document.getElementById("select").querySelector("img").src = element.nextElementSibling.querySelector("img").src
+        }
+    })
+}
+
+function deselect() {
+    placeSelection()
+    moving = false
+    selection.clear()
+    drawSelection()
+}
+
 function placeSelection() {
     c.drawImage(select_move, 0, 0)
     sm.clearRect(0, 0, canvas.width, canvas.height)
@@ -114,6 +136,12 @@ function placeSelection() {
     moving = false
     move_pos = [0, 0]
     pre_selection.clear()
+    selection.forEach(cell => {
+        var [x, y] = cell.split(",").map(Number)
+        if (x < 0 || y < 0 || x >= pixels[0] || y >= pixels[1]) {
+            selection.delete(cell)
+        }
+    })
 }
 
 function getIndex(x, y) {
@@ -205,6 +233,12 @@ function updateSelection() {
 }
 
 function drawSelection() {
+    if (selection.size == 0) {
+        document.querySelector("#deselect").style.display = "none"
+    }
+    else {
+        document.querySelector("#deselect").style.display = "block"
+    }
     sc.clearRect(0, 0, selection_canvas.width, selection_canvas.height)
     selection.forEach(cell =>{
         var [ox, oy] = cell.split(",").map(Number)
@@ -347,6 +381,7 @@ function setCursor() {
 }
 
 function changeTool(tool) {
+    pause()
     selected_tool = tool.id
     setCursor()
     document.querySelector(".selected").classList.remove("selected")
@@ -384,6 +419,13 @@ window.onkeydown = function (e) {
     else if (e.keyCode == 72) {
         changeTool(document.querySelector("#hand"))
     }
+    else if (e.ctrlKey && e.keyCode == 68) {
+        e.preventDefault()
+        placeSelection()
+        moving = false
+        selection.clear()
+        drawSelection()
+    }
     else if (e.keyCode == 68) {
         changeTool(document.querySelector("#dropper"))
     }
@@ -396,6 +438,7 @@ window.onkeydown = function (e) {
     else if (e.ctrlKey && e.keyCode == 89) {
         redo()
     }
+    
     if (e.keyCode == 17) {
         ctrlPressed = true
     }
@@ -495,6 +538,7 @@ function show_hide(element) {
 }
 
 function newLayer() {
+    pause()
     layer_count ++
     var new_layer = document.createElement("div")
     new_layer.className = "layer-con"
@@ -521,10 +565,14 @@ function newLayer() {
     new_canvas.height = pixels[1]
     document.querySelector("#layers").appendChild(new_canvas)
     undo_list.push(["new layer", [...layers_bar.children].indexOf(new_layer), new_layer, new_canvas])
+    var frames = [...clips.children]
+    frames.forEach(frame => {
+        framesData[frame.id][new_canvas.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
+    })
     undoCheck()
 }
 function changeLayer(layer, e) {
-    
+    pause()
     var show_and_hide = layer.querySelector(".layer-tool")
     var icon = layer.querySelector("img")
     if (e && (e.target == show_and_hide || e.target == icon)) {
@@ -539,7 +587,7 @@ function changeLayer(layer, e) {
     updateCanvases()
 }
 function renaming(layer, e) {
-    
+    pause()
     var show_and_hide = layer.querySelector(".layer-tool")
     var icon = layer.querySelector("img")
     if (e && (e.target == show_and_hide || e.target == icon)) {
@@ -559,6 +607,7 @@ function renaming(layer, e) {
     rename_input.select()
 }
 function rename(name) {
+    pause()
     var layer = name.parentElement
     var label = layer.querySelector("label")
     var show_and_hide = layer.querySelector(".layer-tool")
@@ -575,6 +624,7 @@ function rename(name) {
     label.innerText = name.value
 }
 function deleteLayer() {
+    pause()
     var all_layers = [...document.querySelectorAll(".layer-con")]
     if (all_layers.length == 1) {
         alert("Couldn't delete the last layer!")
@@ -597,6 +647,7 @@ function deleteLayer() {
     canvas_element.remove()
 }
 function dublicatelayer() {
+    pause()
     layer_count ++
     var element = document.querySelector(".active")
     var canvas_id = element.id.replace("-con", "")
@@ -624,9 +675,14 @@ function dublicatelayer() {
     document.querySelector("#layers").insertBefore(new_canvas, canvas_element.nextSibling)
     layers_bar.insertBefore(new_layer, element)
     undo_list.push(["new layer", [...layers_bar.children].indexOf(new_layer), new_layer, new_canvas])
-    undoCheck
+    var frames = [...clips.children]
+    frames.forEach(frame => {
+        framesData[frame.id][new_canvas.id] = new_canvas.getContext("2d").getImageData(0, 0, pixels[0], pixels[1]).data
+    })
+    undoCheck()
 }
 function layerUp() {
+    pause()
     var element = document.querySelector(".active")
     if (!element.previousElementSibling) {
         return
@@ -641,6 +697,7 @@ function layerUp() {
     }
 }
 function layerDown() {
+    pause()
     var element = document.querySelector(".active")
     if (!element.nextElementSibling) {
         return
@@ -655,6 +712,7 @@ function layerDown() {
     }
 }
 function startDrag(element) {
+    pause()
     if (element.draggable == false) {
         e.preventDefault()
         return
@@ -672,7 +730,7 @@ function endDrag(element) {
 }
 layers_bar.addEventListener("dragover", (e) => {
     e.preventDefault()
-    var element = document.querySelector(".dragging")
+    var element = document.querySelector(".dragging.layer-con")
     var siblings = [...document.querySelectorAll(".layer-con:not(.dragging)")]
 
     var replace_element = siblings.find(sibling => {
@@ -693,6 +751,21 @@ function updateCanvases() {
         if (layer.classList.contains("active")) {
             document.querySelector("#layers").appendChild(document.querySelector('#selection'))
         }
+    })
+    var image = c.getImageData(0, 0, pixels[0], pixels[1])
+    var data = image.data
+    selected_pixels = [...data].fill(0)
+    selection.forEach(cell => {
+        var [x, y] = cell.split(",").map(Number)
+        var index = getIndex(x, y)
+        selected_pixels[index] = data[index]
+        selected_pixels[index + 1] = data[index + 1]
+        selected_pixels[index + 2] = data[index + 2]
+        selected_pixels[index + 3] = data[index + 3]
+        data[index] = 0
+        data[index + 1] = 0
+        data[index + 2] = 0
+        data[index + 3] = 0
     })
 }
 function undo() {
@@ -823,4 +896,256 @@ function downloadImage() {
 function updateDim(element) {
     document.querySelector("#width-num").innerText = (parseInt(element.value) * pixels[0]) + "px"
     document.querySelector("#height-num").innerText = (parseInt(element.value) * pixels[1]) + "px"
+}
+function updateKeyframes() {
+    var children = [...clips.children]
+    var count = 1
+    children.forEach(element => {
+        element.innerHTML = count
+        count ++
+    })
+}
+function updateBeforeAfter(element) {
+    var frames = [...clips.children]
+    var index = frames.indexOf(element)
+    var previous = frames[index - 1]
+    var next = frames[index + 1]
+    document.querySelector("#before").getContext("2d").clearRect(0, 0, pixels[0], pixels[1])
+    document.querySelector("#after").getContext("2d").clearRect(0, 0, pixels[0], pixels[1])
+    if (previous) {
+        var image = document.querySelector("#before").getContext("2d").getImageData(0, 0, pixels[0], pixels[1])
+        var data = image.data
+        var all_layers = [...document.querySelector("#layers").children]
+        all_layers.forEach(child => {
+            var frame = framesData[previous.id][child.id]
+            if (child.id !== "selection") {
+                for (var i = 0; i < frame.length; i += 4) {
+                    data[i + 1] = 255
+                    data[i + 3] = frame[i + 3] * 150 / 255
+                }
+            }
+        })
+        document.querySelector("#before").getContext("2d").putImageData(image, 0, 0)
+    }
+    if (next) {
+        var image = document.querySelector("#after").getContext("2d").getImageData(0, 0, pixels[0], pixels[1])
+        var data = image.data
+        var all_layers = [...document.querySelector("#layers").children]
+        all_layers.forEach(child => {
+            var frame = framesData[next.id][child.id]
+            if (child.id !== "selection") {
+                for (var i = 0; i < frame.length; i += 4) {
+                    data[i] = 255
+                    data[i + 3] = frame[i + 3] * 150 / 255
+                }
+            }
+        })
+        document.querySelector("#after").getContext("2d").putImageData(image, 0, 0)
+    }
+}
+function changeKeyframe(element) {
+    var layers = [...document.querySelector("#layers").children]
+    var current = document.querySelector(".active-frame")
+    if (current && !playing) {
+        layers.forEach(layer => {
+            if (layer.id == "selection") {
+                return
+            }
+            var image = layer.getContext("2d").getImageData(0, 0, pixels[0], pixels[1])
+            framesData[current.id][layer.id] = image.data
+        })
+    }
+    
+    document.querySelector(".active-frame").classList.remove("active-frame")
+    element.classList.add("active-frame")
+
+    
+    layers.forEach(layer => {
+        if (layer.id == "selection") {
+            return
+        }
+        var image = layer.getContext("2d").getImageData(0, 0, pixels[0], pixels[1])
+        image.data.set(framesData[element.id][layer.id])
+        
+        layer.getContext("2d").putImageData(image, 0, 0)
+    })
+    updateBeforeAfter(element)
+}
+function addFrame() {
+    pause()
+    frame_count ++
+    var clip_con = document.createElement("div")
+    clip_con.classList.add("clip")
+    clip_con.draggable = true
+    clip_con.id = "frame" + frame_count
+    clip_con.ondragstart = function () {
+        startDrag(clip_con)
+    }
+    clip_con.ondragend = function () {
+        endDrag(clip_con)
+        updateKeyframes()
+    }
+    clip_con.onclick = function () {
+        changeKeyframe(clip_con)
+    }
+    clips.appendChild(clip_con)
+    updateKeyframes()
+    var layers = [...document.querySelector("#layers").children]
+    framesData["frame" + frame_count] = {}
+    layers.forEach(layer => {
+        if (layer.id != "selection") {
+            framesData["frame" + frame_count][layer.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
+        }
+    })
+}
+function dublicateFrame() {
+    pause()
+    frame_count ++
+    var clip_con = document.createElement("div")
+    var element = document.querySelector(".active-frame")
+    var next = element.nextElementSibling
+    clip_con.classList.add("clip")
+    clip_con.draggable = true
+    clip_con.id = "frame" + frame_count
+    clip_con.ondragstart = function () {
+        startDrag(clip_con)
+    }
+    clip_con.ondragend = function () {
+        endDrag(clip_con)
+        updateKeyframes()
+    }
+    clip_con.onclick = function () {
+        changeKeyframe(clip_con)
+    }
+    if (next) {
+        clips.insertBefore(clip_con, next)
+    }
+    else {
+        clips.append(clip_con)
+    }
+    
+    updateKeyframes()
+    var layers = [...document.querySelector("#layers").children]
+    
+    framesData["frame" + frame_count] = {}
+    layers.forEach(layer => {
+        if (layer.id != "selection") {
+            framesData["frame" + frame_count][layer.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
+        }
+    })
+}
+function removeFrame() {
+    pause()
+    var frames = [...document.querySelector("#clips").children]
+    if (frames.length <= 1) {
+        alert("Couldn't delete the last frame")
+        return
+    }
+    var element = document.querySelector(".active-frame")
+    var index = frames.indexOf(element)
+    if (index + 1 < frames.length) {
+        changeKeyframe(frames[index + 1])
+    }
+    else {
+        changeKeyframe(frames[index - 1])
+    }
+    delete framesData[element.id]
+    element.remove()
+    updateKeyframes()
+}
+clips.addEventListener("dragover", (e) => {
+    e.preventDefault()
+    var element = document.querySelector(".dragging.clip")
+    var siblings = [...document.querySelectorAll(".clip:not(.dragging)")]
+
+    var replace_element = siblings.find(sibling => {
+        const rect = sibling.getBoundingClientRect()
+        return e.clientX <= rect.left + rect.width / 2
+    })
+
+    clips.insertBefore(element, replace_element)
+    updateCanvases()
+})
+clips.addEventListener("dragenter", (e) => {
+    e.preventDefault()
+})
+var play_interval = null
+function startPlay() {
+    var frames = [...clips.children]
+    var index = frames.indexOf(document.querySelector(".active-frame"))
+    if (index < frames.length - 1) {
+        changeKeyframe(frames[index + 1])
+    }
+    else {
+        changeKeyframe(frames[0])
+    }
+}
+function play() {
+    var element = document.querySelector("#play-pause-btn")
+    element.classList.remove("paused")
+    element.classList.add("played")
+    element.querySelector("img").src = "assets/Pause.svg"
+    play_interval = setInterval(() => {
+        startPlay()
+    }, parseInt(document.querySelector("#delay").value))
+}
+function pause() {
+    var element = document.querySelector("#play-pause-btn")
+    element.classList.remove("played")
+    element.classList.add("paused")
+    element.querySelector("img").src = "assets/Play.svg"
+    clearInterval(play_interval)
+    play_interval = null
+}
+function playPause() {
+    var element = document.querySelector("#play-pause-btn")
+    if (element.classList.contains("paused")) {
+        play(element)
+    }
+    else if (element.classList.contains("played")) {
+        pause(element)
+    }
+}
+function backward() {
+    var frames = [...clips.children]
+    changeKeyframe(frames[0])
+    pause()
+}
+function backwardStep() {
+    var frames = [...clips.children]
+    var element = document.querySelector(".active-frame")
+    var index = frames.indexOf(element)
+    if (index == 0) {
+        changeKeyframe(frames[frames.length - 1])
+    }
+    else {
+        changeKeyframe(frames[index - 1])
+    }
+    pause()
+}
+function forwardStep() {
+    var frames = [...clips.children]
+    var element = document.querySelector(".active-frame")
+    var index = frames.indexOf(element)
+    if (index == frames.length - 1) {
+        changeKeyframe(frames[0])
+    }
+    else {
+        changeKeyframe(frames[index + 1])
+    }
+    pause()
+}
+function forward() {
+    var frames = [...clips.children]
+    changeKeyframe(frames[frames.length - 1])
+    pause()
+}
+function changeDelay() {
+    if (play_interval !== null) {
+        clearInterval(play_interval)
+        play_interval = null
+        play_interval = setInterval(() => {
+            startPlay()
+        }, parseInt(document.querySelector("#delay").value))
+    }
 }

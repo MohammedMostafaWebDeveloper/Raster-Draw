@@ -49,16 +49,53 @@
                 <button id="swap-colors" onclick="swap_colors()"><img src="assets/Swap.svg" id="swap-icon"></button>
             </div>
         </div>
-        <div id="editor">
-            <canvas id="background"></canvas>
-            <div id="layers">
-                <canvas id="layer1"></canvas>
-                <canvas id="selection"></canvas>
+        <div id="middle">
+            <div id="editor">
+                <canvas id="background"></canvas>
+                <canvas id="before"></canvas>
+                <canvas id="after"></canvas>
+                <div id="layers">
+                    <canvas id="layer1"></canvas>
+                    <canvas id="selection"></canvas>
+                </div>
+                <canvas id="effects"></canvas>
+                <canvas id="selection-canvas"></canvas>
+                <canvas id="trace"></canvas>
+                <button id="deselect" onclick="deselect()">Deselect</button>
             </div>
-            <canvas id="effects"></canvas>
-            <canvas id="selection-canvas"></canvas>
-            <canvas id="trace"></canvas>
+            <div id="keyframes">
+                <div id="keyframes-tools">
+                    <div id="timeline-tools">
+                        <button class="layer-tool" onclick="backward()"><img src="assets/Backward.svg"></button>
+                        <button class="layer-tool" onclick="backwardStep()"><img style="scale: 0.9;" src="assets/Backward Step.svg"></button>
+                        <button class="layer-tool paused" id="play-pause-btn" onclick="playPause(this)"><img style="scale: 0.9;" src="assets/Play.svg"></button>
+                        <button class="layer-tool" onclick="forwardStep()"><img style="scale: 0.9;" src="assets/Forward Step.svg"></button>
+                        <button class="layer-tool" onclick="forward()"><img src="assets/Forward.svg"></button>
+                    </div>
+                    <div id="delay-con">
+                        Delay :
+                        <select id="delay" onchange="changeDelay()">
+                            <option value="40">40 ms</option>
+                            <option value="60">60 ms</option>
+                            <option value="80">80 ms</option>
+                            <option value="100" selected>100 ms</option>
+                            <option value="120">120 ms</option>
+                            <option value="140">140 ms</option>
+                            <option value="160">160 ms</option>
+                        </select>
+                    </div>
+                    <div id="edit-tools">
+                        <button class="layer-tool" onclick="addFrame()"><img src="assets/Add.svg"></button>
+                        <button class="layer-tool" onclick="dublicateFrame()"><img src="assets/Dublicate.svg"></button>
+                        <button class="layer-tool" onclick="removeFrame()"><img src="assets/Delete.svg"></button>
+                    </div>
+                </div>
+                <div id="clips">
+                    <div class="clip active-frame" id="frame1" draggable="true" onclick="changeKeyframe(this)" ondragstart="startDrag(this)" ondragend="endDrag(this); updateKeyframes()">1</div>
+                </div>
+            </div>
         </div>
+        
         <div id="rightbar">
             <div class="bar-title">Tool Options</div>
             <div id="custbar">
@@ -67,9 +104,9 @@
                 </div>
                 <div id="select-cust" class="cust-con" style="display: none;">
                     <div class="cust-title">
-                        <input type="radio" id="rectangle-select-option" name="select-tool" checked><label for="rectangle-select-option" class="option"><img src="assets/Rectangle Select.svg"></label>
-                        <input type="radio" id="circle-select-option" name="select-tool"><label for="circle-select-option" class="option"><img src="assets/Circle Select.svg"></label>
-                        <input type="radio" id="lasso-select-option" name="select-tool"><label for="lasso-select-option" class="option"><img src="assets/Lasso Select.svg"></label>
+                        <input type="radio" id="rectangle-select-option" name="select-tool" checked onchange="changeSelectIcon()"><label for="rectangle-select-option" class="option"><img src="assets/Rectangle Select.svg"></label>
+                        <input type="radio" id="circle-select-option" name="select-tool" onchange="changeSelectIcon()"><label for="circle-select-option" class="option"><img src="assets/Circle Select.svg"></label>
+                        <input type="radio" id="lasso-select-option" name="select-tool" onchange="changeSelectIcon()"><label for="lasso-select-option" class="option"><img src="assets/Lasso Select.svg"></label>
                     </div>
                     <hr>
                     <div class="cust-title">
@@ -105,7 +142,7 @@
                         <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
                     </div>
                     <input type="range" class="alpha-range" min="0" max="255" value="255">
-                    <hr>0320
+                    <hr>
                     <div class="cust-title">
                         <label>Ignore other layers : </label><input type="checkbox" class="ignore-checkbox">
                     </div>
@@ -147,10 +184,6 @@
                         <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
                     </div>
                     <input type="range" class="alpha-range" min="0" max="255" value="255">
-                    <hr>
-                    <div class="cust-title">
-                        <label>Fill : </label><input type="checkbox" class="fill-checkbox">
-                    </div>
                 </div>
                 <div id="rectangle-cust" class="cust-con" style="display: none;">
                     <div class="cust-title">
@@ -162,10 +195,6 @@
                         <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
                     </div>
                     <input type="range" class="alpha-range" min="0" max="255" value="255">
-                    <hr>
-                    <div class="cust-title">
-                        <label>Fill : </label><input type="checkbox" class="fill-checkbox">
-                    </div>
                 </div>
                 <div id="dropper-cust" class="cust-con" style="display: none;">
                     No options available
