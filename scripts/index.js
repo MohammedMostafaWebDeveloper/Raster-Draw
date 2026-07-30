@@ -114,6 +114,8 @@ var framesData = {frame1 : {layer1 : new Uint8ClampedArray(pixels[0] * pixels[1]
 
 var playing = false
 
+var play_interval = null
+
 function changeSelectIcon() {
     document.getElementsByName("select-tool").forEach(element => {
         if (element.checked) {
@@ -969,7 +971,14 @@ function changeKeyframe(element) {
         
         layer.getContext("2d").putImageData(image, 0, 0)
     })
-    updateBeforeAfter(element)
+    if (play_interval == null) {
+        updateBeforeAfter(element)
+    }
+    else {
+        document.querySelector("#before").getContext("2d").clearRect(0, 0, pixels[0], pixels[1])
+        document.querySelector("#after").getContext("2d").clearRect(0, 0, pixels[0], pixels[1])
+    }
+    
 }
 function addFrame() {
     pause()
@@ -997,6 +1006,7 @@ function addFrame() {
             framesData["frame" + frame_count][layer.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
         }
     })
+    changeKeyframe(clip_con)
 }
 function dublicateFrame() {
     pause()
@@ -1033,6 +1043,7 @@ function dublicateFrame() {
             framesData["frame" + frame_count][layer.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
         }
     })
+    changeKeyframe(clip_con)
 }
 function removeFrame() {
     pause()
@@ -1069,7 +1080,7 @@ clips.addEventListener("dragover", (e) => {
 clips.addEventListener("dragenter", (e) => {
     e.preventDefault()
 })
-var play_interval = null
+
 function startPlay() {
     var frames = [...clips.children]
     var index = frames.indexOf(document.querySelector(".active-frame"))
@@ -1096,6 +1107,7 @@ function pause() {
     element.querySelector("img").src = "assets/Play.svg"
     clearInterval(play_interval)
     play_interval = null
+    updateBeforeAfter(document.querySelector(".active-frame"))
 }
 function playPause() {
     var element = document.querySelector("#play-pause-btn")
