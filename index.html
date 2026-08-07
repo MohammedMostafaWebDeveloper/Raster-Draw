@@ -3,294 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raster Draw</title>
     <link rel="icon" type="image/png" href="assets/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>Raster Draw</title>
+    <style>
+        :root{
+            color-scheme: dark;
+        }
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            color: white;
+            font-family: "Quicksand", sans-serif;
+            font-size: 14px;
+            user-select: none;
+        }
+        body{
+            background-color: #000000;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        .con{
+            background-color: #1b1b1b;
+            border: 2px solid #2e2e2e;
+            padding: 20px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #upload{
+            display: flex;
+            flex-direction: column;
+            border-radius: 20px;
+            background-color: #303030;
+            padding: 25px;
+            width: 100%;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #upload:hover{
+            background-color: #3f3f3f;
+        }
+        #upload:active{
+            background-color: #535353;
+        }
+        #upload img{
+            filter: brightness(0) saturate(100%) invert(94%) sepia(0%) saturate(381%) hue-rotate(182deg) brightness(78%) contrast(90%);
+            height: 30px;
+        }
+        #logo{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            padding: 10px;
+            background: #30303056;
+            backdrop-filter: blur(7px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        #logo img{
+            width: 30px;
+        }
+        #upload .dragging{
+            background-color: #3f3f3f;
+        }
+        #tools{
+            margin-top: 100px;
+            display: flex;
+            justify-content: space-evenly;
+        }
+        .page{
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        #error{
+            background: linear-gradient(90deg, rgba(190, 0, 0, 0.507) 0%, rgba(95, 95, 95, 0.37) 50%);
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 10px;
+            gap: 10px;
+            transition: 0.5s ease-in;
+            translate: calc(100% + 15px) 0px;
+        }
+        #close{
+            background-color: #00000000;
+            border: none;
+            outline: none;
+            display: flex;
+            padding: 5px;
+            transition: 0.2s;
+            width: fit-content;
+            aspect-ratio: 1;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #close:hover{
+            background-color: #5a5a5a52;
+        }
+        #close img{
+            width: 17px;
+            filter: brightness(0) saturate(100%) invert(63%) sepia(0%) saturate(115%) hue-rotate(217deg) brightness(98%) contrast(99%);
+        }
+        #error-icon{
+            padding: 5px;
+            background-color: #e84a4a3a;
+            display: flex;
+            border-radius: 10px;
+        }
+        #error-icon img{
+            width: 25px;
+            filter: brightness(0) saturate(100%) invert(63%) sepia(88%) saturate(4528%) hue-rotate(330deg) brightness(93%) contrast(96%);
+        }
+        #error-text{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        #error-label{
+            color: #e84a4a;
+            font-weight: bolder;
+            font-size: 16px;
+        }
+        #error-content{
+            font-size: 13px;
+        }
+        #draw-con{
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+        }
+        #upload-con{
+            position: relative;
+        }
+        #draw-con::before{
+            content: "Start Drawing";
+            background-color: #a551ff;
+            color: white;
+            position: absolute;
+            z-index: -1;
+            height: 50px;
+            top: -40px;
+            width: 100%;
+            border: 2px solid #a551ff;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            padding-top: 5px;
+        }
+        #upload-con::before{
+            content: "Convert Image to Pixel Art";
+            background-color: #a551ff;
+            color: white;
+            position: absolute;
+            z-index: -1;
+            height: 50px;
+            top: -40px;
+            width: 100%;
+            border: 2px solid #a551ff;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            padding-top: 5px;
+        }
+        .file-btn{
+            background-color: #a551ff2f;
+            transition: 0.1s;
+            padding: 10px;
+            border: 2px solid #a551ff;
+            outline: none;
+            color: #b775ff;
+            font-weight: 600;
+            border-radius: 10px;
+            width: 100%;
+            cursor: pointer;
+            display: flex;
+            gap: 10px;
+            
+        }
+        .file-btn img{
+            height: 20px;
+            filter: brightness(0) saturate(100%) invert(41%) sepia(46%) saturate(4462%) hue-rotate(244deg) brightness(99%) contrast(110%);
+        }
+        .file-btn:hover img{
+            filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(0%) hue-rotate(288deg) brightness(102%) contrast(102%);
+
+        }
+        .file-btn:hover{
+            background-color: #a551ff;
+            color: white
+        }
+        #intro{
+            margin-left: 18%;
+        }
+        #intro h2{
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 42px;
+        }
+        #intro p{
+            font-size: 17px;
+        }
+        .cover{
+            width: 100%;
+            height: 100%;
+            background: #00000081;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.15s;
+        }
+        .popedup{
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #new-ui{
+            background-color: #181c1f;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #2d3033;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .ui-con{
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            font-size: 16px;
+            align-items: center;
+        }
+        #file-name, #file-width, #file-height{
+            background-color: #212629;
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            min-width: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: end;
+            flex: 1;
+        }
+        #create-file{
+            padding: 10px;
+            background-color: #a551ff;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        hr{
+            border: 1px solid #4b4d4e;
+        }
+    </style>
 </head>
 <body>
-    <div id="navbar">
-        <div id="logo-con">
-            <img src="assets/logo.png" id="logo">
-            Raster Draw
-            <vl></vl>
-            <input id="project-name" placeholder="Untitled Project">
+    <div id="logo">
+        <img src="assets/logo.png">
+        Raster Draw
+    </div>
+    <div class="page">
+        <div id="intro">
+            <h2>Porfessional pixel art app</h2>
+            <p>Draw your art from scratch of convert an existing image to pixel art</p>
         </div>
-        <div id="edit">
-            <button id="undo" onclick="undo()"><img src="assets/Undo.svg" id="undo-icon"></button>
-            <button id="redo" onclick="redo()"><img src="assets/Redo.svg" id="redo-icon"></button>
-        </div>
-        <div id="export-con">
-            <button class="export">File</button>
-            <button class="export" onclick="showResize()">Resize</button>
-            <button class="export colored" onclick="showExport()"><img src="assets/Export.svg">Export</button>
+        <div id="tools">
+            <div id="draw-con" class="con">
+                <input type="file" id="upload-file" style="display: none;" accept=".rasart">
+                <button class="file-btn" id="new-file" onclick="document.querySelector('#new-ui').parentElement.classList.add('popedup')"><img src="assets/Add.svg">Create new Project</button>
+                <button class="file-btn" id="upload-file" onclick="document.querySelector('#upload-file').click()"><img src="assets/Upload.svg">Upload an existing project (.rasart)</button>
+            </div>
+            <div id="upload-con" class="con">
+                <input onchange="uploadImage(this)" type="file" style="display: none;" accept=".png, .jpg, .jpeg, .webp, .avif, .gif, .svg">
+                <div id="upload" onclick="document.querySelector('#upload-con').querySelector('input').click()">
+                    <img src="assets/Clip.svg">
+                    Choose a file or drag and drop it here
+                </div>
+            </div>
         </div>
     </div>
-    <div id="content">
-        <div id="toolbar">
-            <div id="tools">
-                <button class="tool-btn" id="move"><img src="assets/Move.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="select"><img src="assets/Rectangle Select.svg" class="tool-icon"></button>
-                <button class="tool-btn selected" id="pencil"><img src="assets/Pencil.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="fill"><img src="assets/Fill.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="eraser"><img src="assets/Eraser.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="line"><img src="assets/Line.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="circle"><img src="assets/Circle.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="rectangle"><img src="assets/Rectangle.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="dropper"><img src="assets/Eye dropper.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="hand"><img src="assets/Hand.svg" class="tool-icon"></button>
-                <button class="tool-btn" id="zoom"><img src="assets/Zoom.svg" class="tool-icon"></button>
+    <div class="cover" onclick="if (event.target == this) {this.classList.remove('popedup')}">
+        <div id="new-ui">
+            <div class="ui-con" style="justify-content: space-between;">
+                <p style="font-size: 18px; font-weight: 600;">New Project</p>
+                <button id="close" onclick="this.parentElement.parentElement.parentElement.classList.remove('popedup')"><img src="assets/Close.svg"></button>
             </div>
-            <div id="colors-con">
-                <input type="color" id="secondary-color" class="color" value="#ffffff">
-                <input type="color" id="primary-color" class="color">
-                <button id="swap-colors" onclick="swap_colors()"><img src="assets/Swap.svg" id="swap-icon"></button>
+            <hr>
+            <div class="ui-con"><input type="text" id="file-name" placeholder="Project name" oninput="checkChars(this)">.rasart</div>
+            <div class="ui-con">
+                Width : <input type="number" id="file-width" placeholder="Width"> px
+                <space></space>
+                Height : <input type="number" id="file-height" placeholder="Height"> px
             </div>
+            <button id="create-file" onclick="createFile()">Create Project</button>
         </div>
-        <div id="middle">
-            <div id="editor">
-                <canvas id="background"></canvas>
-                <canvas id="before"></canvas>
-                <canvas id="after"></canvas>
-                <div id="layers">
-                    <canvas id="layer1"></canvas>
-                    <canvas id="selection"></canvas>
-                </div>
-                <canvas id="effects"></canvas>
-                <canvas id="selection-canvas"></canvas>
-                <canvas id="trace"></canvas>
-                <button id="deselect" onclick="deselect()">Deselect</button>
-            </div>
-            <div id="keyframes">
-                <div id="keyframes-tools">
-                    <div id="timeline-tools">
-                        <button class="layer-tool" onclick="backward()"><img src="assets/Backward.svg"></button>
-                        <button class="layer-tool" onclick="backwardStep()"><img style="scale: 0.9;" src="assets/Backward Step.svg"></button>
-                        <button class="layer-tool paused" id="play-pause-btn" onclick="playPause(this)"><img style="scale: 0.9;" src="assets/Play.svg"></button>
-                        <button class="layer-tool" onclick="forwardStep()"><img style="scale: 0.9;" src="assets/Forward Step.svg"></button>
-                        <button class="layer-tool" onclick="forward()"><img src="assets/Forward.svg"></button>
-                    </div>
-                    <div id="delay-con">
-                        Delay :
-                        <select id="delay" onchange="changeDelay()">
-                            <option value="40">40 ms</option>
-                            <option value="60">60 ms</option>
-                            <option value="80">80 ms</option>
-                            <option value="100" selected>100 ms</option>
-                            <option value="120">120 ms</option>
-                            <option value="140">140 ms</option>
-                            <option value="160">160 ms</option>
-                        </select>
-                    </div>
-                    <div id="edit-tools">
-                        <button class="layer-tool" onclick="addFrame()"><img src="assets/Add.svg"></button>
-                        <button class="layer-tool" onclick="dublicateFrame()"><img src="assets/Dublicate.svg"></button>
-                        <button class="layer-tool" onclick="removeFrame()"><img src="assets/Delete.svg"></button>
-                    </div>
-                </div>
-                <div id="clips">
-                    <div class="clip active-frame" id="frame1" draggable="true" onclick="changeKeyframe(this)" ondragstart="startDrag(this)" ondragend="endDrag(this); updateKeyframes()">1</div>
-                </div>
-            </div>
+    </div>
+    <div id="error">
+        <div id="error-icon"><img src="assets/Error.svg"></div>
+        <div id="error-text">
+            <p id="error-label">Error!</p>
+            <p id="error-content"></p>
         </div>
+        <button id="close" onclick="document.querySelector('#error').style.translate = 'calc(100% + 15px) 0px'"><img src="assets/Close.svg"></button>
+    </div>
+    <script>
+        var upload = document.querySelector("#upload")
+        var forbiddenChars = ['/', '\\', ':', '*', '"', '?', '<', '>', '|']
+        var allowed_extentions = ["image/png", "image/jpg", "image/jpeg", "image/webp", "image/avif", "image/gif", "image/svg+xml"]
+        upload.addEventListener("dragover", (e) => {
+            e.preventDefault()
+            upload.classList.add("dragging")
+        })
+        upload.addEventListener("dragleave", (e) => {
+            upload.classList.remove("dragging")
+        })
+        upload.addEventListener("drop", (e) =>{
+            e.preventDefault()
+            upload.classList.remove("dragging")
+            var files = e.dataTransfer.files
+            if (files.length < 1) {
+
+            }
+            else if (files.length > 1) {
+                showError("Please select only one image", 5)
+            }
+            else if (!allowed_extentions.includes(files[0].type)) {
+                showError("This file type is not supported! If it is an image, please convert it to another format", 10)
+            }
+            else {
+                goToConvert(files[0])
+            }
+        })
+        function checkChars(element) {
+            var initText = element.value
+            forbiddenChars.forEach(char => {
+                element.value = element.value.replaceAll(char, "")
+            })
+            if (element.value != initText) {
+                showError("Project name can't contain these characters " + '/ \\ : * " ? < > |', 5)
+            }
+        }
+        function createFile() {
+            var width = document.querySelector("#file-width")
+            var height = document.querySelector("#file-height")
+            var name = document.querySelector("#file-name")
+            if (width.value < 1 || height.value < 1) {
+                showError("They width and the height can't be less than 1px", 5)
+                return
+            }
+            else if (width.value > 1024 || height.value > 1024) {
+                showError("The width and the height can't exceed 1024px", 5)
+                return
+            }
+            if (name.value == "") {
+                showError("Please enter a name for the project", 5)
+                return
+            }
+            sessionStorage.setItem("width", width.value)
+            sessionStorage.setItem("height", height.value)
+            sessionStorage.setItem("name", name.value)
+            window.location.href = "drawing.html"
+        }
+        function uploadImage(element) {
+            var file = element.files[0]
+            if (file) {
+                goToConvert(file)
+            }
+        }
+        function showError(text, duration) {
+            document.querySelector("#error-content").innerText = text
+            document.querySelector("#error").style.translate = "0px 0px"
+            setTimeout(() => {
+                document.querySelector("#error").style.translate = "calc(100% + 15px) 0px"
+            }, duration * 1000)
+        }
+        function goToConvert(file) {
+
+            var request = indexedDB.open("image", 1)
+            request.onupgradeneeded = (event) => {
+                var db = event.target.result
+
+                db.createObjectStore("src", { keyPath: "id" })
+            }
+            request.onsuccess = (event) => {
+                var db = event.target.result
+                var edit = db.transaction("src", "readwrite")
+                edit.objectStore("src").put({id: 1, image: file})
+                edit.oncomplete = () => {
+                    window.location.href = "convert.html"
+                }
+            }
+            
+        }
         
-        <div id="rightbar">
-            <div class="bar-title">Tool Options</div>
-            <div id="custbar">
-                <div id="move-cust" class="cust-con" style="display: none;">
-                    No options available
-                </div>
-                <div id="select-cust" class="cust-con" style="display: none;">
-                    <div class="cust-title">
-                        <input type="radio" id="rectangle-select-option" name="select-tool" checked onchange="changeSelectIcon()"><label for="rectangle-select-option" class="option"><img src="assets/Rectangle Select.svg"></label>
-                        <input type="radio" id="circle-select-option" name="select-tool" onchange="changeSelectIcon()"><label for="circle-select-option" class="option"><img src="assets/Circle Select.svg"></label>
-                        <input type="radio" id="lasso-select-option" name="select-tool" onchange="changeSelectIcon()"><label for="lasso-select-option" class="option"><img src="assets/Lasso Select.svg"></label>
-                    </div>
-                    <hr>
-                    <div class="cust-title">
-                        <input type="radio" id="normal-mode" name="select-mode" checked><label for="normal-mode" class="option"><img style="scale: 0.8;" src="assets/Square.svg"></label>
-                        <input type="radio" id="union-mode" name="select-mode"><label for="union-mode" class="option"><img src="assets/Union.svg"></label>
-                        <input type="radio" id="subtract-mode" name="select-mode"><label for="subtract-mode" class="option"><img src="assets/Subtract.svg"></label>
-                        <input type="radio" id="intersect-mode" name="select-mode"><label for="intersect-mode" class="option"><img src="assets/Intersect.svg"></label>
-                        <input type="radio" id="exclude-mode" name="select-mode"><label for="exclude-mode" class="option"><img src="assets/Exclude.svg"></label>
-                    </div>
-                </div>
-                <div id="pencil-cust" class="cust-con">
-                    <div class="cust-title">
-                        <label>Size :</label><input type="number" class="size-number" min="1" max="1000" value="1">
-                    </div>
-                    <input type="range" class="size-range" min="1" max="100" value="1">
-                    <hr>
-                    <div class="cust-title">
-                        <label>Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
-                    </div>
-                    <input type="range" class="alpha-range" min="0" max="255" value="255">
-                    <hr>
-                    <div class="cust-title">
-                        <label>Soft Brush : </label><input type="checkbox" class="soft-checkbox">
-                    </div>
-                </div>
-                <div id="fill-cust" class="cust-con" style="display: none;">
-                    <div class="cust-title">
-                        <label class="tolerance-label">Tolerance :</label><input type="number" class="tolerance-number" min="0" max="100" value="50">
-                    </div>
-                    <input type="range" class="tolerance-range" min="0" max="100" value="50">
-                    <hr>
-                    <div class="cust-title">
-                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
-                    </div>
-                    <input type="range" class="alpha-range" min="0" max="255" value="255">
-                    <hr>
-                    <div class="cust-title">
-                        <label>Ignore other layers : </label><input type="checkbox" class="ignore-checkbox">
-                    </div>
-                    <hr>
-                </div>
-                <div id="eraser-cust" class="cust-con" style="display: none;">
-                    <div class="cust-title">
-                        <label class="size-label">Size :</label><input type="number" class="size-number" min="1" max="1000" value="1">
-                    </div>
-                    <input type="range" class="size-range" min="1" max="100" value="1">
-                    <hr>
-                    <div class="cust-title">
-                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
-                    </div>
-                    <input type="range" class="alpha-range" min="0" max="255" value="255">
-                    <hr>
-                    <div class="cust-title">
-                        <label>Soft Brush : </label><input type="checkbox" class="soft-checkbox">
-                    </div>
-                </div>
-                <div id="line-cust" class="cust-con" style="display: none;">
-                    <div class="cust-title">
-                        <label class="size-label">Thickness :</label><input type="number" class="thickness-number" min="1" max="1000" value="1">
-                    </div>
-                    <input type="range" class="thickness-range" min="1" max="100" value="1">
-                    <hr>
-                    <div class="cust-title">
-                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
-                    </div>
-                    <input type="range" class="alpha-range" min="0" max="255" value="255">
-                </div>
-                <div id="circle-cust" class="cust-con" style="display: none;">
-                    <div class="cust-title">
-                        <label class="size-label">Thickness :</label><input type="number" class="thickness-number" min="1" max="1000" value="1">
-                    </div>
-                    <input type="range" class="thickness-range" min="1" max="100" value="1">
-                    <hr>
-                    <div class="cust-title">
-                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
-                    </div>
-                    <input type="range" class="alpha-range" min="0" max="255" value="255">
-                </div>
-                <div id="rectangle-cust" class="cust-con" style="display: none;">
-                    <div class="cust-title">
-                        <label class="size-label">Thickness :</label><input type="number" class="thickness-number" min="1" max="1000" value="1">
-                    </div>
-                    <input type="range" class="thickness-range" min="1" max="100" value="1">
-                    <hr>
-                    <div class="cust-title">
-                        <label class="alpha-label">Alpha :</label><input type="number" class="alpha-number" min="0" max="255" value="255">
-                    </div>
-                    <input type="range" class="alpha-range" min="0" max="255" value="255">
-                </div>
-                <div id="dropper-cust" class="cust-con" style="display: none;">
-                    No options available
-                </div>
-                <div id="hand-cust" class="cust-con" style="display: none;">
-                    No options available
-                </div>
-                <div id="zoom-cust" class="cust-con" style="display: none;">
-                    <div class="cust-title">
-                        <label class="zoom-label">Zoom factor :</label><input type="number" class="zoom-number" min="1" max="10" value="5">
-                    </div>
-                    <input type="range" class="zoom-range" min="1" max="10" value="5">
-                    <hr>
-                    <div class="cust-title">
-                        <input type="radio" id="zoomin" name="zoom" checked><label for="zoomin" class="option"><img src="assets/Zoom In.svg"></label>
-                        <input type="radio" id="zoomout" name="zoom"><label for="zoomout" class="option"><img src="assets/Zoom Out.svg"></label>
-                    </div>
-                </div>
-            </div>
-            <div class="bar-title">Mirror</div>
-            <div id="mirrorbar">
-                <div class="cust-con">
-                    <div class="cust-title">
-                        <label class="mirrorx-label">Mirror X :</label><input type="checkbox" id="mirrorx-checkbox" min="0" max="255" value="255">
-                    </div>
-                    <hr>
-                    <div class="cust-title">
-                        <label class="mirrory-label">Mirror Y :</label><input type="checkbox" id="mirrory-checkbox" min="0" max="255" value="255">
-                    </div>
-                </div>
-            </div>
-            <div class="bar-title">Layers</div>
-            <div id="layersbar">
-                <div class="layer-con active" id="layer-con1" onclick="changeLayer(this, event)" draggable="true" ondragstart="startDrag(this)" ondragend="endDrag(this)" ondblclick="renaming(this, event)">
-                    <button class="layer-tool hide" onclick="show_hide(this)" style="height: 25px;"><img src="assets/Show.svg"></button>
-                    <label class="layer-text">Layer 1</label>
-                    <input class="layer-name hidden" value="Layer 1" onblur="rename(this)" onkeydown="if (event.keyCode == 13) {rename(this)}">
-                </div>
-            </div>
-            <div id="layer-tools-con">
-                <div style="display: flex;">
-                    <button class="layer-tool" onclick="newLayer()"><img src="assets/Add.svg"></button>
-                    <button class="layer-tool" onclick="dublicatelayer()"><img src="assets/Dublicate.svg"></button>
-                    <button class="layer-tool" onclick="layerUp()"><img src="assets/Up.svg"></button>
-                    <button class="layer-tool" onclick="layerDown()"><img src="assets/Down.svg"></button>
-                </div>
-                <button class="layer-tool" id="new-layer" onclick="deleteLayer()"><img src="assets/Delete.svg"></button>
-            </div>
-        </div>
-    </div>
-    <div id="dropper-ui"></div>
-    <div class="cover" id="export-cover" onmousedown="if (event.target == this) {this.classList.add('clicked')}" onclick="hideCover(this, event)">
-        <div id="export-ui">
-            <div class="cust-title">
-                <h3>Export Image</h3>
-                <button class="layer-tool" onclick="this.closest('.cover').classList.remove('popedup')"><img src="assets/Close.svg"></button>
-            </div>
-            <hr>
-            <label class="subtitle">Image format :</label>
-            <div class="cust-title">
-                <input type="radio" id="png" name="format" checked onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="png" class="option">PNG</label>
-                <input type="radio" id="jpeg" name="format" onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="jpeg" class="option">JPEG</label>
-                <input type="radio" id="webp" name="format" onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="webp" class="option">Webp</label>
-                <input type="radio" id="avif" name="format" onchange="document.querySelector('#extension').innerText = '.' + this.id"><label for="avif" class="option">AVIF</label>
-            </div>
-            <hr>
-            <label class="subtitle">Image scale :</label>
-            <div class="cust-con" style="gap: 20px; padding: 0; flex-direction: row; justify-content: space-between; align-items: center;">
-                <input style="flex: 1;" type="range" class="scale-range" min="1" max="200" value="10" oninput="updateDim(this)"><input type="number" class="scale-number" min="1" max="200" value="10" oninput="updateDim(this)">
-            </div>
-            <div class="cust-con" style="gap: 20px; padding: 0; flex-direction: row; justify-content: space-between; align-items: center;">
-                <label>Width: <num id="width-num">100px</num> Height <num id="height-num">100px</num></label>
-            </div>
-            <hr>
-            <label class="subtitle">File name :</label>
-            <div class="cust-con" style="gap: 20px; padding: 0; flex-direction: row; justify-content: space-between; align-items: center;">
-                <input class="text" id="file-name" value="Image File" placeholder=""><label id="extension">.png</label>
-            </div>
-            <button class="download" onclick="downloadImage()">Download Image</button>
-        </div>
-    </div>
-    <div class="cover" id="resize-cover" onmousedown="if (event.target == this) {this.classList.add('clicked')}" onclick="hideCover(this, event)">
-        <div id="resize-ui">
-            <div class="cust-title">
-                <h3>Resize Canvas</h3>
-                <button class="layer-tool" onclick="this.closest('.cover').classList.remove('popedup')"><img src="assets/Close.svg"></button>
-            </div>
-            <hr>
-            <div class="cust-title">
-                
-            </div>
-            <button class="resize" onclick="resizeCanvas()">Resize</button>
-        </div>
-    </div>
-    
-    <script src="scripts/index.js"></script>
-    <script src="scripts/tools.js"></script>
+    </script>
 </body>
 </html>

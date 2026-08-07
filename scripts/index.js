@@ -1,5 +1,15 @@
 var pixels = [40, 40]
 
+if (sessionStorage.getItem("width")){
+    pixels[0] = sessionStorage.getItem("width")
+}
+if (sessionStorage.getItem("height")){
+    pixels[1] = sessionStorage.getItem("height")
+}
+if (sessionStorage.getItem("name")) {
+    document.querySelector("#project-name").value = sessionStorage.getItem("name")
+}
+
 var ctrlPressed = false
 
 var before_order, after_order
@@ -647,6 +657,7 @@ function deleteLayer() {
     undoCheck()
     element.remove()
     canvas_element.remove()
+    updateBeforeAfter()
 }
 function dublicatelayer() {
     pause()
@@ -787,6 +798,10 @@ function undo() {
         }
         undo[2].remove()
         undo[3].remove()
+        var all_frames = [...clips.children]
+        all_frames.forEach(clip => {
+            delete framesData[clip.id][undo[2].id]
+        })
         redo_list.push(undo)
         return
     }
@@ -795,12 +810,19 @@ function undo() {
         layers_bar.insertBefore(undo[2], siblings[undo[1]])
         document.querySelector("#layers").appendChild(undo[3])
         redo_list.push(undo)
+        updateBeforeAfter()
         return
     }
     else if (undo[0] == "order") {
         updateOrder(undo[1])
         redo_list.push(undo)
         return
+    }
+    else if (undo[0] == "new frame") {
+        
+    }
+    else if (undo[0] == "delete frame") {
+        
     }
 
     var [layer_id, changes] = undo
@@ -829,6 +851,10 @@ function redo() {
         layers_bar.insertBefore(redo[2], siblings[redo[1]])
         document.querySelector("#layers").appendChild(redo[3])
         updateCanvases()
+        var all_frames = [...clips.children]
+        all_frames.forEach(clip => {
+            framesData[clip.id][redo[2].id] = Uint8ClampedArray(pixels[0] * pixels[1] * 4)
+        })
         undo_list.push(redo)
         return
     }
@@ -836,12 +862,19 @@ function redo() {
         redo[2].remove()
         redo[3].remove()
         undo_list.push(redo)
+        updateBeforeAfter()
         return
     }
     else if (redo[0] == "order") {
         updateOrder(redo[2])
         undo_list.push(redo)
         return
+    }
+    else if (redo[0] == "new frame") {
+
+    }
+    else if (redo[0] == "delete frame") {
+        
     }
     var [layer_id, changes] = redo
     undo_list.push([layer_id, changes])
@@ -923,7 +956,7 @@ function updateBeforeAfter(element) {
             if (child.id !== "selection") {
                 for (var i = 0; i < frame.length; i += 4) {
                     data[i + 1] = 255
-                    data[i + 3] = frame[i + 3] * 150 / 255
+                    data[i + 3] += frame[i + 3] * 150 / 255
                 }
             }
         })
@@ -938,7 +971,7 @@ function updateBeforeAfter(element) {
             if (child.id !== "selection") {
                 for (var i = 0; i < frame.length; i += 4) {
                     data[i] = 255
-                    data[i + 3] = frame[i + 3] * 150 / 255
+                    data[i + 3] += frame[i + 3] * 150 / 255
                 }
             }
         })
@@ -971,7 +1004,7 @@ function changeKeyframe(element) {
         
         layer.getContext("2d").putImageData(image, 0, 0)
     })
-    if (play_interval == null) {
+    if (!play_interval) {
         updateBeforeAfter(element)
     }
     else {
@@ -1159,5 +1192,22 @@ function changeDelay() {
         play_interval = setInterval(() => {
             startPlay()
         }, parseInt(document.querySelector("#delay").value))
+    }
+}
+var forbiddenChars = ['/', '\\', ':', '*', '"', '?', '<', '>', '|']
+function showError(text, duration) {
+    document.querySelector("#error-content").innerText = text
+    document.querySelector("#error").style.translate = "0px 0px"
+    setTimeout(() => {
+        document.querySelector("#error").style.translate = "calc(100% + 15px) 0px"
+    }, duration * 1000)
+}
+function checkChars(element) {
+    var initText = element.value
+    forbiddenChars.forEach(char => {
+        element.value = element.value.replaceAll(char, "")
+    })
+    if (element.value != initText) {
+        showError("Project name can't contain these characters " + '/ \\ : * " ? < > |', 5)
     }
 }

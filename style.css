@@ -1,3 +1,6 @@
+:root{
+    color-scheme: dark;
+}
 *{
     margin: 0;
     padding: 0;
@@ -25,6 +28,7 @@ body{
     display: flex;
     flex-direction: column;
     background-color: #141414;
+    overflow: hidden;
 }
 #navbar{
     width: 100%;
@@ -677,4 +681,60 @@ num{
 }
 #delay option{
     padding: 5px;
+}
+#error{
+    background: linear-gradient(90deg, rgb(146, 0, 0) 0%, rgb(43, 43, 43) 50%);
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 10px;
+    gap: 10px;
+    transition: 0.5s ease-in;
+    translate: calc(100% + 15px) 0px;
+}
+#close{
+    background-color: #00000000;
+    border: none;
+    outline: none;
+    display: flex;
+    padding: 5px;
+    transition: 0.2s;
+    width: fit-content;
+    aspect-ratio: 1;
+    border-radius: 5px;
+    cursor: pointer;
+}
+#close:hover{
+    background-color: #5a5a5a52;
+}
+#close img{
+    width: 17px;
+    filter: brightness(0) saturate(100%) invert(63%) sepia(0%) saturate(115%) hue-rotate(217deg) brightness(98%) contrast(99%);
+}
+#error-icon{
+    padding: 5px;
+    background-color: #e84a4a3a;
+    display: flex;
+    border-radius: 10px;
+}
+#error-icon img{
+    width: 25px;
+    filter: brightness(0) saturate(100%) invert(63%) sepia(88%) saturate(4528%) hue-rotate(330deg) brightness(93%) contrast(96%);
+}
+#error-text{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+#error-label{
+    color: #e84a4a;
+    font-weight: bolder;
+    font-size: 16px;
+}
+#error-content{
+    font-size: 13px;
 }
