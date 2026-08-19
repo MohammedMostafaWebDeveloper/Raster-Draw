@@ -302,19 +302,19 @@ img{
 .export:hover{
     background-color: rgba(255, 255, 255, 0.164);
 }
-.export.colored{
+.colored{
     background: #a551ff2f;
     color: #a551ff;
     border: 1px solid #a551ff;
 }
-.export.colored img{
+.colored img{
     filter: brightness(0) saturate(100%) invert(41%) sepia(46%) saturate(4462%) hue-rotate(244deg) brightness(99%) contrast(110%);
 }
-.export.colored:hover{
+.colored:hover{
     background: #a551ff;
     color: rgb(255, 255, 255);
 }
-.export.colored:hover img{
+.colored:hover img{
     filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(0%) hue-rotate(288deg) brightness(102%) contrast(102%);
 }
 #custbar{
@@ -565,11 +565,7 @@ input[type="radio"]:checked + label img {
     opacity: 0;
     transition: 0.15s;
 }
-.popedup{
-    pointer-events: auto;
-    opacity: 1;
-}
-#export-ui, #resize-ui{
+#export-ui, #resize-ui, #new-ui{
     background-color: #181c1f;
     padding: 20px;
     color: white;
@@ -737,4 +733,52 @@ num{
 }
 #error-content{
     font-size: 13px;
+}
+.horizontal-con{
+    display: flex;
+    max-width: 100%;
+    gap: 10px;
+    align-items: center;
+}
+.ui-input{
+    flex: 1;
+    min-width: 0px;
+    color: white;
+    outline: none;
+    border: 1px solid #313436;
+    padding: 10px;
+    border-radius: 5px;
+}
+#create-project{
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+}
+#file-ui{
+    position: fixed;
+    top: 50px;
+    right: 250px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.15s;
+}
+.file-tool{
+    padding: 12px 17px 12px 17px;
+    border-radius: 0;
+    border: none;
+    background-color: #23262b;
+    transition: 0.1s;
+}
+.file-tool:hover{
+    background-color: #a551ff;
+}
+.popedup, #file-ui.popedup{
+    pointer-events: auto;
+    opacity: 1;
 }

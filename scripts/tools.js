@@ -1,5 +1,3 @@
-
-
 function colorMatch(a, b, tolerence) {
     return (
         Math.abs(a[0] - b[0]) <= tolerence / 100 * 255 &&
@@ -28,13 +26,13 @@ function drawPixel(drawing_canvas, x, y, color, alpha) {
         drawing_canvas.globalCompositeOperation = "destination-out"
         drawing_canvas.fillStyle = "#000000"
         drawing_canvas.fillRect(x, y, 1, 1)
-        if (mirrorX && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + y)) {
+        if (mirrorX && ((selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + y)) || selection.size == 0)) {
             drawing_canvas.fillRect(canvas.width - 1 - x, y, 1, 1)
         }
-        if (mirrorY && selection.size > 0 && selection.has(x + "," + (canvas.height - 1 - y))) {
+        if (mirrorY && ((selection.size > 0 && selection.has(x + "," + (canvas.height - 1 - y))) || selection.size == 0)) {
             drawing_canvas.fillRect(x, canvas.height - 1 - y, 1, 1)
         }
-        if (mirrorX && mirrorY && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + (canvas.height - 1 - y))) {
+        if (mirrorX && mirrorY && ((selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + (canvas.height - 1 - y))) || selection.size == 0)) {
             drawing_canvas.fillRect(canvas.width - 1 - x, canvas.height - 1 - y, 1, 1)
         }
         drawing_canvas.restore()
@@ -45,13 +43,13 @@ function drawPixel(drawing_canvas, x, y, color, alpha) {
     if (selected_tool == "hand" || selected_tool == "fill" || selected_tool == "dropper") { 
         return
     }
-    if (mirrorX && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + y)) {
+    if (mirrorX && ((selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + y)) || selection.size == 0)) {
         drawing_canvas.fillRect(canvas.width - 1 - x, y, 1, 1)
     }
-    if (mirrorY && selection.size > 0 && selection.has(x + "," + (canvas.height - 1 - y))) {
+    if (mirrorY && ((selection.size > 0 && selection.has(x + "," + (canvas.height - 1 - y))) || selection.size == 0)) {
         drawing_canvas.fillRect(x, canvas.height - 1 - y, 1, 1)
     }
-    if (mirrorX && mirrorY && selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + (canvas.height - 1 - y))) {
+    if (mirrorX && mirrorY && ((selection.size > 0 && selection.has((canvas.width - 1 - x) + "," + (canvas.height - 1 - y))) || selection.size == 0)) {
         drawing_canvas.fillRect(canvas.width - 1 - x, canvas.height - 1 - y, 1, 1)
     }
 }

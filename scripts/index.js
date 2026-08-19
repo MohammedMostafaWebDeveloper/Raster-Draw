@@ -1,40 +1,142 @@
 var pixels = [40, 40]
 
-if (sessionStorage.getItem("width")){
-    pixels[0] = sessionStorage.getItem("width")
+var framesData = {frame1 : {layer1 : new Uint8ClampedArray(pixels[0] * pixels[1] * 4)}}
+
+var state = ""
+
+if (sessionStorage.getItem("state")) {
+    state = sessionStorage.getItem("state")
 }
-if (sessionStorage.getItem("height")){
-    pixels[1] = sessionStorage.getItem("height")
+
+if (state == "") {
+    window.location.href = "index.html"
 }
-if (sessionStorage.getItem("name")) {
-    document.querySelector("#project-name").value = sessionStorage.getItem("name")
+else if (state == "new") {
+    if (sessionStorage.getItem("width")) {
+        pixels[0] = sessionStorage.getItem("width")
+    }
+    if (sessionStorage.getItem("height")) {
+        pixels[1] = sessionStorage.getItem("height")
+    }
+    if (sessionStorage.getItem("name")) {
+        document.querySelector("#project-name").value = sessionStorage.getItem("name")
+    }
+    framesData = {frame1 : {layer1 : new Uint8ClampedArray(pixels[0] * pixels[1] * 4)}}
 }
+else if (state == "upload") {
+    var request = indexedDB.open("file", 1)
+    request.onsuccess = async (e) => {
+        var db = e.target.result
+        var data = db.transaction("data", "readonly")
+        var getRequest = data.objectStore("data").get(1)
+
+        getRequest.onsuccess = async () => {
+            var file = getRequest.result.file
+            var text = await file.text()
+            var data = JSON.parse(text)
+            loadFile(data)
+        }
+    }
+}
+function loadFile(data) {
+    document.querySelector("#project-name").value = data.name
+    pixels[0] = data.width
+    pixels[1] = data.height
+    
+    frame_count = data.frame_count
+    layer_count = data.layer_count
+    document.querySelectorAll("canvas").forEach(canvas_element => {
+        if (canvas_element.id !== "selection-canvas" && canvas_element.id !== "trace") {
+            canvas_element.width = pixels[0]
+            canvas_element.height = pixels[1]
+        }
+    })
+    redefine()
+    for (var i = 0; i < pixels[0]; i++) {
+        for (var j = 0; j < pixels[1]; j++) {
+            if ((i * j) % 2 == 0 && (j % 2 != 0 || i % 2 != 0)) {
+                cbg.fillStyle = "#ffffff"
+            }
+            else {
+                cbg.fillStyle = "#cccccc"
+            }
+            cbg.fillRect(i, j, 1, 1)
+        }
+    }
+    
+    [...document.querySelector("#layers").children].forEach(layer => {
+        if (layer.id !== "selection") {
+            layer.remove()
+        }
+    })
+    document.querySelector("#layersbar").innerHTML = ""
+    document.querySelector("#clips").innerHTML = ""
+    framesData = {}
+    for (var [id, frame] of Object.entries(data.frames)) {
+        framesData[id] = {}
+
+        for (var [layer_id, layer] of Object.entries(frame)) {
+            framesData[id][layer_id] = new Uint8ClampedArray(layer)
+        }
+    }
+    data.layers.forEach(layer => {
+        newLayer(layer, data.names[data.layers.indexOf(layer)])
+    })
+    data.clips.forEach(clip => {
+        addFrame(clip)
+    })
+    framesData = {}
+    for (var [id, frame] of Object.entries(data.frames)) {
+        framesData[id] = {}
+       
+
+        for (var [layer_id, layer] of Object.entries(frame)) {
+            framesData[id][layer_id] = new Uint8ClampedArray(layer)
+        }
+    }
+    var layers = [...document.querySelector("#layers").children]
+    var element = document.querySelector(".active-frame")
+    layers.forEach(layer => {
+        if (layer.id == "selection") {
+            return
+        }
+
+        var image = layer.getContext("2d").getImageData(0, 0, pixels[0], pixels[1])
+        image.data.set(framesData[element.id][layer.id])
+        
+        layer.getContext("2d").putImageData(image, 0, 0)
+    })
+    updateBeforeAfter()
+    redefine()
+    undo_list = []
+    redo_list = []
+}
+
 
 var ctrlPressed = false
 
 var before_order, after_order
-
 document.querySelectorAll("canvas").forEach(canvas_element => {
     canvas_element.width = pixels[0]
     canvas_element.height = pixels[1]
 })
 var background = document.querySelector("#background")
-var cbj = background.getContext("2d")
+var cbg = background.getContext("2d")
 
 var undo_list = []
 var redo_list = []
 
-var max_memory = navigator.deviceMemory * 1024 * 1024 * 1024 * 0.025
+var max_memory = (navigator.deviceMemory || 4) * 1024 * 1024 * 1024 * 0.025
 
 for (var i = 0; i < pixels[0]; i++) {
     for (var j = 0; j < pixels[1]; j++) {
         if ((i * j) % 2 == 0 && (j % 2 != 0 || i % 2 != 0)) {
-            cbj.fillStyle = "#ffffff"
+            cbg.fillStyle = "#ffffff"
         }
         else {
-            cbj.fillStyle = "#cccccc"
+            cbg.fillStyle = "#cccccc"
         }
-        cbj.fillRect(i, j, 1, 1)
+        cbg.fillRect(i, j, 1, 1)
     }
 }
 
@@ -57,6 +159,11 @@ trace.height = crect.height
 var sc = selection_canvas.getContext("2d")
 var tc = trace.getContext("2d")
 
+var combined_canvas = document.createElement("canvas")
+combined_canvas.width = pixels[0]
+combined_canvas.height = pixels[1]
+var cc = combined_canvas.getContext("2d", {willReadFrequently: true})
+
 var observer = new ResizeObserver(entries => {
     for (var element of entries) {
         element.target.width = element.contentRect.width
@@ -66,11 +173,6 @@ var observer = new ResizeObserver(entries => {
 
 observer.observe(selection_canvas)
 observer.observe(trace)
-
-var combined_canvas = document.createElement("canvas")
-combined_canvas.width = pixels[0]
-combined_canvas.height = pixels[1]
-var cc = combined_canvas.getContext("2d", {willReadFrequently: true})
 
 var primary_color = document.getElementById("primary-color")
 var seconday_color = document.getElementById("secondary-color")
@@ -120,11 +222,58 @@ var select_start
 
 var clips = document.querySelector("#clips")
 
-var framesData = {frame1 : {layer1 : new Uint8ClampedArray(pixels[0] * pixels[1] * 4)}}
-
 var playing = false
 
 var play_interval = null
+
+function redefine() {
+    background = document.querySelector("#background")
+    cbg = background.getContext("2d")
+    canvas = document.querySelector("#layer1")
+    c = canvas.getContext("2d", {willReadFrequently: true})
+
+    select_move = document.querySelector("#selection")
+    sm = select_move.getContext("2d")
+
+    effects = document.querySelector("#effects")
+    ce = effects.getContext("2d")
+
+    selection_canvas = document.querySelector("#selection-canvas")
+    trace = document.querySelector("#trace")
+    crect = selection_canvas.getBoundingClientRect()
+    selection_canvas.width = crect.width
+    selection_canvas.height = crect.height
+    trace.width = crect.width
+    trace.height = crect.height
+    sc = selection_canvas.getContext("2d")
+    tc = trace.getContext("2d")
+
+    combined_canvas = document.createElement("canvas")
+    combined_canvas.width = pixels[0]
+    combined_canvas.height = pixels[1]
+    cc = combined_canvas.getContext("2d", {willReadFrequently: true})
+
+    observer = new ResizeObserver(entries => {
+        for (var element of entries) {
+            element.target.width = element.contentRect.width
+            element.target.height = element.contentRect.height
+        }
+    })
+
+    observer.observe(selection_canvas)
+    observer.observe(trace)
+
+    primary_color = document.getElementById("primary-color")
+    seconday_color = document.getElementById("secondary-color")
+
+    selected_tool = "pencil"
+
+    tools = document.querySelectorAll(".tool-btn")
+
+    editor = document.getElementById("editor")
+
+    layers_bar = document.getElementById("layersbar")
+}
 
 function changeSelectIcon() {
     document.getElementsByName("select-tool").forEach(element => {
@@ -549,12 +698,23 @@ function show_hide(element) {
     }
 }
 
-function newLayer() {
+function newLayer(layer_id, layer_name) {
     pause()
-    layer_count ++
+    var id
+    var name
+    if (layer_id) {
+        id = [layer_id, layer_id.replace("r", "r-con")]
+        name = layer_name
+    }
+    else {
+        layer_count ++
+        id = [`layer${layer_count}`, `layer-con${layer_count}`]
+        name = "Layer " + layer_count
+    }
+    
     var new_layer = document.createElement("div")
     new_layer.className = "layer-con"
-    new_layer.id = `layer-con${layer_count}`
+    new_layer.id = id[1]
     new_layer.draggable = true
     new_layer.ondragstart = function () {
         startDrag(new_layer)
@@ -569,18 +729,19 @@ function newLayer() {
         renaming(this, e)
     }
 
-    new_layer.innerHTML = `<button class="layer-tool hide" onclick="show_hide(this)" style="height: 25px;"><img src="assets/Show.svg"></button><label class="layer-text">Layer ${layer_count}</label><input class="layer-name hidden" value="Layer ${layer_count}" onblur="rename(this)" onkeydown="if (event.keyCode == 13) {rename(this)}">`
+    new_layer.innerHTML = `<button class="layer-tool hide" onclick="show_hide(this)" style="height: 25px;"><img src="assets/Show.svg"></button><label class="layer-text">${name}</label><input class="layer-name hidden" value="Layer ${layer_count}" onblur="rename(this)" onkeydown="if (event.keyCode == 13) {rename(this)}">`
     layers_bar.insertBefore(new_layer, layers_bar.firstChild)
     var new_canvas = document.createElement("canvas")
-    new_canvas.id = `layer${layer_count}`
+    new_canvas.id = id[0]
     new_canvas.width = pixels[0]
     new_canvas.height = pixels[1]
     document.querySelector("#layers").appendChild(new_canvas)
     undo_list.push(["new layer", [...layers_bar.children].indexOf(new_layer), new_layer, new_canvas])
     var frames = [...clips.children]
-    frames.forEach(frame => {
+    frames.forEach(frame => { 
         framesData[frame.id][new_canvas.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
     })
+    changeLayer(new_layer)
     undoCheck()
 }
 function changeLayer(layer, e) {
@@ -590,7 +751,9 @@ function changeLayer(layer, e) {
     if (e && (e.target == show_and_hide || e.target == icon)) {
         return
     }
-    document.querySelector(".active").classList.remove("active")
+    if (document.querySelector(".active")) {
+        document.querySelector(".active").classList.remove("active")
+    }
     layer.classList.add("active")
     var canvas_id = layer.id.replace("-con", "")
 
@@ -819,12 +982,28 @@ function undo() {
         return
     }
     else if (undo[0] == "new frame") {
-        
+        frame_count --
+        var clips = [...document.querySelector("#clips").children]
+        if (undo[3].classList.contains("active-frame")) {
+            changeKeyframe(clips[undo[1] - 1])
+        }
+        delete framesData[undo[3].id]
+        undo[3].remove()
+        updateBeforeAfter()
+        redo_list.push(undo)
+        return
     }
     else if (undo[0] == "delete frame") {
-        
+        var clips = document.querySelector("#clips")
+        var clips_elements = [...clips.children]
+        clips.insertBefore(undo[2], clips_elements[undo[1]])
+        framesData[undo[2].id] = undo[3]
+        changeKeyframe(undo[2])
+        updateBeforeAfter()
+        redo_list.push(undo)
+        return
     }
-
+    
     var [layer_id, changes] = undo
     redo_list.push([layer_id, changes])
     var id = layer_id.slice(0, 5) + "-con" + layer_id.slice(5)
@@ -871,10 +1050,26 @@ function redo() {
         return
     }
     else if (redo[0] == "new frame") {
-
+        frame_count ++
+        var clips = document.querySelector("#clips")
+        var clips_elements = [...clips.children]
+        clips.insertBefore(redo[3], clips_elements[redo[1]])
+        framesData[redo[3].id] = redo[2]
+        changeKeyframe(redo[3])
+        updateBeforeAfter()
+        undo_list.push(redo)
+        return
     }
     else if (redo[0] == "delete frame") {
-        
+        var clips = [...document.querySelector("#clips").children]
+        if (undo[2].classList.contains("active-frame")) {
+            changeKeyframe(undo[2])
+        }
+        delete framesData[redo[2].id]
+        redo[2].remove()
+        updateBeforeAfter()
+        undo_list.push(redo)
+        return
     }
     var [layer_id, changes] = redo
     undo_list.push([layer_id, changes])
@@ -894,10 +1089,29 @@ function showExport() {
     }
     document.querySelector("#file-name").value = file_name
     document.querySelector("#file-name").setAttribute("placeholder", file_name)
-    updateDim()
+    updateDim(document.querySelector(".scale-number"))
+}
+function showFile() {
+    document.querySelector("#file-ui").classList.add("popedup")
+}
+function hideFile() {
+    document.querySelector("#file-ui").classList.remove("popedup")
+}
+window.onclick = (e) => {
+    if (e.target.id !== "show-file-btn") {
+        hideFile()
+    }
+}
+function showNew() {
+    document.querySelector("#new-cover").classList.add("popedup")
+}
+function uploadFile() {
+    document.querySelector("#upload-file").click()
 }
 function showResize() {
     document.querySelector("#resize-cover").classList.add("popedup")
+    document.querySelector("#file-width").value = pixels[0]
+    document.querySelector("#file-height").value = pixels[1]
 }
 function hideCover(element, e) {
     if (e.target == element && element.classList.contains("clicked")) {
@@ -910,14 +1124,24 @@ function downloadImage() {
     var scale = export_ui.querySelector(".scale-number").value
     var width = pixels[0] * scale
     var height = pixels[1] * scale
-    if (export_ui.querySelector("#jpeg").checked) {
-        updateCombinedCanvas(width, height, "white")
+    var frames = [...document.querySelector("#clips").children]
+    var virtual = document.createElement("canvas")
+    virtual.height = height
+    virtual.width = width * frames.length
+    var vc = virtual.getContext("2d")
+    for (var i = 0; i < frames.length; i++) {
+        changeKeyframe(frames[i])
+        if (export_ui.querySelector("#jpeg").checked) {
+            updateCombinedCanvas(width, height, "white")
+        }
+        else {
+            updateCombinedCanvas(width, height)
+        }
+        vc.drawImage(combined_canvas, width * i, 0, width, height)
     }
-    else {
-        updateCombinedCanvas(width, height)
-    }
+    
     var image_type = export_ui.querySelector("input[name='format']:checked").id
-    var url = combined_canvas.toDataURL(`image/${image_type}`)
+    var url = virtual.toDataURL(`image/${image_type}`)
     var name = export_ui.querySelector("#file-name").value
     if (name == "") {
         name = export_ui.querySelector("#file-name").getAttribute("placeholder")
@@ -990,8 +1214,10 @@ function changeKeyframe(element) {
             framesData[current.id][layer.id] = image.data
         })
     }
+    if (document.querySelector(".active-frame")) {
+        document.querySelector(".active-frame").classList.remove("active-frame")
+    }
     
-    document.querySelector(".active-frame").classList.remove("active-frame")
     element.classList.add("active-frame")
 
     
@@ -999,6 +1225,7 @@ function changeKeyframe(element) {
         if (layer.id == "selection") {
             return
         }
+
         var image = layer.getContext("2d").getImageData(0, 0, pixels[0], pixels[1])
         image.data.set(framesData[element.id][layer.id])
         
@@ -1013,13 +1240,21 @@ function changeKeyframe(element) {
     }
     
 }
-function addFrame() {
+function addFrame(clip_id) {
     pause()
-    frame_count ++
+    var id
+    if (!clip_id) {
+        frame_count ++
+        id = "frame" + frame_count
+    }
+    else {
+        id = clip_id
+    }
+    
     var clip_con = document.createElement("div")
     clip_con.classList.add("clip")
     clip_con.draggable = true
-    clip_con.id = "frame" + frame_count
+    clip_con.id = id
     clip_con.ondragstart = function () {
         startDrag(clip_con)
     }
@@ -1036,10 +1271,12 @@ function addFrame() {
     framesData["frame" + frame_count] = {}
     layers.forEach(layer => {
         if (layer.id != "selection") {
-            framesData["frame" + frame_count][layer.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
+            framesData[id][layer.id] = new Uint8ClampedArray(pixels[0] * pixels[1] * 4)
         }
     })
     changeKeyframe(clip_con)
+    var clips_elements = [...document.querySelector("#clips").children]
+    undo_list.push(["new frame", clips_elements.indexOf(clip_con), framesData[id], clip_con])
 }
 function dublicateFrame() {
     pause()
@@ -1077,6 +1314,8 @@ function dublicateFrame() {
         }
     })
     changeKeyframe(clip_con)
+    var clips_elements = document.querySelector("#clips")
+    undo_list.push(["new frame", clips_elements.indexOf(clip_con), framesData["frame" + frame_count], clip_con])
 }
 function removeFrame() {
     pause()
@@ -1093,6 +1332,7 @@ function removeFrame() {
     else {
         changeKeyframe(frames[index - 1])
     }
+    undo_list.push(["delete frame", index, element, framesData[element.id]])
     delete framesData[element.id]
     element.remove()
     updateKeyframes()
@@ -1210,4 +1450,133 @@ function checkChars(element) {
     if (element.value != initText) {
         showError("Project name can't contain these characters " + '/ \\ : * " ? < > |', 5)
     }
+}
+function resizeCanvas() {
+    var width = document.querySelector("#file-width").value
+    var height = document.querySelector("#file-height").value
+
+    if (width < 1 || height < 1) {
+        showError("Width and height must be at least 1px", 5)
+    }
+    else if (width > 1024 || height > 1024) {
+        showError("Width and height can't exceed 1024px", 5)
+    }
+    else {
+        pixels[0] = width
+        pixels[1] = height
+        var frames = [...document.querySelector("#clips").children]
+        var current = document.querySelector(".active-frame")
+        for (var i = 0; i < frames.length; i++) {
+            changeKeyframe(frames[i])
+            var all_layers = [...document.querySelector("#layers").children]
+            all_layers.forEach(layer => {
+                var temp = document.createElement("canvas")
+                temp.width = layer.width
+                temp.height = layer.height
+                var temp_c = temp.getContext("2d")
+
+                temp_c.drawImage(layer, 0, 0)
+
+                layer.width = pixels[0]
+                layer.height = pixels[1]
+
+                layer.getContext("2d").drawImage(temp, 0, 0)
+            })
+        }
+        document.querySelector("#before").width = pixels[0]
+        document.querySelector("#before").height = pixels[1]
+        document.querySelector("#after").width = pixels[0]
+        document.querySelector("#after").height = pixels[1]
+        effects.width = pixels[0]
+        effects.height = pixels[1]
+        var ce = effects.getContext("2d")
+        background.width = pixels[0]
+        background.height = pixels[1]
+        var cbg = background.getContext("2d")
+        for (var i = 0; i < pixels[0]; i++) {
+            for (var j = 0; j < pixels[1]; j++) {
+                if ((i * j) % 2 == 0 && (j % 2 != 0 || i % 2 != 0)) {
+                    cbg.fillStyle = "#ffffff"
+                }
+                else {
+                    cbg.fillStyle = "#cccccc"
+                }
+                cbg.fillRect(i, j, 1, 1)
+            }
+        }
+    }
+}
+function createFile() {
+    var name = document.querySelector("#new-name").value
+    var width = document.querySelector("#new-width").value
+    var height = document.querySelector("#new-height").value
+
+    if (name == "") {
+        showError("Please enter a name for the project")
+        return
+    }
+    else if (width < 1 || height < 1) {
+        showError("The width and the height can't be less than 1 px")
+        return
+    }
+    else if (width > 1024 || height > 1024) {
+        showError("The width and the height can't exceed 1024 px")
+        return
+    }
+
+    sessionStorage.setItem("width", width)
+    sessionStorage.setItem("height", height)
+    sessionStorage.setItem("name", name)
+
+    window.location.reload()
+}
+function downloadRasart() {
+    changeKeyframe(document.querySelector(".active-frame"))
+    var name = document.querySelector("#project-name")
+    if (!name.value) {
+        name.value = "Untitled Project"
+    }
+    var data = {
+        name : name.value,
+        width : pixels[0],
+        height : pixels[1],
+        frames : {},
+        layer_count : layer_count,
+        frame_count : frame_count,
+        names: [],
+        layers : [],
+        clips : []
+    }
+    for (var [id, frame] of Object.entries(framesData)) {
+        data.frames[id] = {}
+
+        for (var [layer_id, layer] of Object.entries(frame)) {
+            data.frames[id][layer_id] = Array.from(layer)
+        }
+    }
+    var layers = [...document.querySelector("#layers").children]
+    var clips = [...document.querySelector("#clips").children]
+    layers.forEach(layer => {
+        if (layer.id !== "selection") {
+            data.layers.push(layer.id)
+            data.names.push(document.getElementById(layer.id.replace("r", "r-con")).querySelector(".layer-text").innerText)
+        }
+    })
+
+    clips.forEach(clip => {
+        data.clips.push(clip.id)
+    })
+    var json = JSON.stringify(data)
+    var blob = new Blob([json], {
+        type: "application/json"
+    })
+    var url = URL.createObjectURL(blob)
+
+    var link = document.createElement("a")
+    link.href = url
+
+    link.download = name.value + ".rasart"
+    link.click()
+
+    URL.revokeObjectURL(url)
 }

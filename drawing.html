@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor</title>
+    <title>Drawing editor</title>
     <link rel="icon" type="image/png" href="assets/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,7 @@
             <button id="redo" onclick="redo()"><img src="assets/Redo.svg" id="redo-icon"></button>
         </div>
         <div id="export-con">
-            <button class="export">File</button>
+            <button class="export" id="show-file-btn" onclick="showFile()">File</button>
             <button class="export" onclick="showResize()">Resize</button>
             <button class="export colored" onclick="showExport()"><img src="assets/Export.svg">Export</button>
         </div>
@@ -283,11 +283,38 @@
                 <button class="layer-tool" onclick="this.closest('.cover').classList.remove('popedup')"><img src="assets/Close.svg"></button>
             </div>
             <hr>
-            <div class="cust-title">
-                
+            <div class="horizontal-con">
+                <input type="number" placeholder="Width" class="ui-input" id="file-width"> px
+                <space></space>
+                <input type="number" placeholder="Height" class="ui-input" id="file-height"> px
             </div>
             <button class="resize" onclick="resizeCanvas()">Resize</button>
         </div>
+    </div>
+    <div class="cover" id="new-cover" onmousedown="if (event.target == this) {this.classList.add('clicked')}" onclick="hideCover(this, event)">
+        <div id="new-ui">
+            <div class="cust-title">
+                <h3>New Project</h3>
+                <button class="layer-tool" onclick="this.closest('.cover').classList.remove('popedup')"><img src="assets/Close.svg"></button>
+            </div>
+            <hr>
+            <div class="cust-title" style="margin-bottom: 10px;">
+                <input type="text" placeholder="Project name" class="ui-input" oninput="checkChars(this)" id="new-name">
+            </div>
+            <div class="cust-title" style="margin-bottom: 10px;">
+                Width : <input type="number" placeholder="Width" class="ui-input" id="new-width">
+                Height : <input type="number" placeholder="Height" class="ui-input" id="new-height">
+            </div>
+            <div class="cust-title">
+                <button class="colored" id="create-project" onclick="createFile()">Create Project</button>
+            </div>
+        </div>
+    </div>
+    <div id="file-ui">
+        <button class="file-tool" onclick="showNew()">New</button>
+        <button class="file-tool" onclick="uploadFile()">Upload</button>
+        <button class="file-tool" onclick="showExport()">Export</button>
+        <button class="file-tool" onclick="downloadRasart()">Download .rasart</button>
     </div>
     <div id="error">
         <div id="error-icon"><img src="assets/Error.svg"></div>
@@ -297,7 +324,7 @@
         </div>
         <button id="close" onclick="document.querySelector('#error').style.translate = 'calc(100% + 15px) 0px'"><img src="assets/Close.svg"></button>
     </div>
-    
+    <input id="upload-file" type="file" style="display: none;" accept=".rasart">
     <script src="scripts/index.js"></script>
     <script src="scripts/tools.js"></script>
 </body>

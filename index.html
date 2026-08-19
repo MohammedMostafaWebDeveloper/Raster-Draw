@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
-    <title>Raster Draw</title>
+    <title>Raster Draw | Pixel art platform</title>
     <style>
         :root{
             color-scheme: dark;
@@ -295,12 +295,12 @@
     </div>
     <div class="page">
         <div id="intro">
-            <h2>Porfessional pixel art app</h2>
-            <p>Draw your art from scratch of convert an existing image to pixel art</p>
+            <h2>Porfessional free pixel art app</h2>
+            <p>Draw your pixel art from scratch of convert an existing image to pixel art</p>
         </div>
         <div id="tools">
             <div id="draw-con" class="con">
-                <input type="file" id="upload-file" style="display: none;" accept=".rasart">
+                <input onchange="uploadFile(this)" type="file" id="upload-file" style="display: none;" accept=".rasart">
                 <button class="file-btn" id="new-file" onclick="document.querySelector('#new-ui').parentElement.classList.add('popedup')"><img src="assets/Add.svg">Create new Project</button>
                 <button class="file-btn" id="upload-file" onclick="document.querySelector('#upload-file').click()"><img src="assets/Upload.svg">Upload an existing project (.rasart)</button>
             </div>
@@ -390,10 +390,31 @@
                 showError("Please enter a name for the project", 5)
                 return
             }
+            sessionStorage.setItem("state", "new")
             sessionStorage.setItem("width", width.value)
             sessionStorage.setItem("height", height.value)
             sessionStorage.setItem("name", name.value)
             window.location.href = "drawing.html"
+        }
+        function uploadFile(element) {
+            var file = element.files[0]
+            if (file) {
+                var request = indexedDB.open("file", 1)
+                request.onupgradeneeded = (event) => {
+                    var db = event.target.result
+
+                    db.createObjectStore("data", { keyPath: "id" })
+                }
+                request.onsuccess = (event) => {
+                    var db = event.target.result
+                    var edit = db.transaction("data", "readwrite")
+                    edit.objectStore("data").put({id: 1, file: file})
+                    edit.oncomplete = () => {
+                        sessionStorage.setItem("state", "upload")
+                        window.location.href = "drawing.html"
+                    }
+                }
+            }
         }
         function uploadImage(element) {
             var file = element.files[0]

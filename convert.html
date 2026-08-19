@@ -1,167 +1,267 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Convert image to pixel art</title>
-    <link rel="icon" type="image/png" href="assets/logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
-    <style>
-        :root{
-            color-scheme: dark;
-        }
-        *{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Quicksand", sans-serif;
-            color: white;
-            font-size: 14px;
-            user-select: none;
-        }
-        body{
-            background-color: #000000;
-            height: 100vh;
-            overflow-x: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #logo{
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            padding: 10px;
-            background: #30303056;
-            backdrop-filter: blur(7px);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-family: 'Pixelify Sans', sans-serif;
-            font-size: 18px;
-            font-weight: 700;
-        }
-        #logo img{
-            width: 30px;
-        }
-        input[type="range"] {
-            appearance: none;
-            -webkit-appearance: none;
-            background-color: #646464;
-            height: 5px;
-            margin: 10px 0 5px 0;
-            border-radius: 10px;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 12px;
-            height: 9px;
-            background-color: rgb(207, 207, 207);
-            margin-top: 7.5px;
-            clip-path: polygon(50% 0%, 100% 70%, 100% 100%, 0% 100%, 0% 70%);
-        }
-        input[type="range"]::-moz-range-thumb {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 12px;
-            height: 9px;
-            background-color: rgb(207, 207, 207);
-            margin-top: 7.5px;
-            clip-path: polygon(50% 0%, 100% 70%, 100% 100%, 0% 100%, 0% 70%);
-        }
-        #con{
-            display: flex;
-            flex-direction: column;
-            background-color: #202020;
-            padding: 20px;
-            border-radius: 20px;
-            border: 1px solid #333333;
-            height: fit-content;
-            width: fit-content;
-        }
-        #top{
-            height: 50vh;
-            flex: 1;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 20px;
-            background-color: #333333;
-            aspect-ratio: 1;
-        }
-        #bottom{
-            display: flex;
-            flex-direction: column;
-        }
-        canvas{
-            position: absolute;
-            max-width: 100%;
-            max-height: 100%;
-            image-rendering: pixelated;
-        }
-    </style>
-</head>
-<body>
-    <div id="logo">
-        <img src="assets/logo.png">
-        Raster Draw
-    </div>
-    <div id="con">
-        <div id="top">
-            <canvas id="image"></canvas>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Convert image to pixel art</title>
+        <link rel="icon" type="image/png" href="assets/logo.png">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+        <style>
+            :root{
+                color-scheme: dark;
+            }
+            *{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: "Quicksand", sans-serif;
+                color: white;
+                font-size: 14px;
+                user-select: none;
+            }
+            body{
+                background-color: #000000;
+                height: 100vh;
+                overflow-x: hidden;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #logo{
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                padding: 10px;
+                background: #30303056;
+                backdrop-filter: blur(7px);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-family: 'Pixelify Sans', sans-serif;
+                font-size: 18px;
+                font-weight: 700;
+            }
+            #logo img{
+                width: 30px;
+            }
+            input[type="range"] {
+                appearance: none;
+                -webkit-appearance: none;
+                background-color: #646464;
+                height: 5px;
+                margin: 10px 0 5px 0;
+                border-radius: 10px;
+            }
+            input[type="range"]::-webkit-slider-thumb {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 12px;
+                height: 9px;
+                background-color: rgb(207, 207, 207);
+                margin-top: 7.5px;
+                clip-path: polygon(50% 0%, 100% 70%, 100% 100%, 0% 100%, 0% 70%);
+            }
+            input[type="range"]::-moz-range-thumb {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 12px;
+                height: 9px;
+                background-color: rgb(207, 207, 207);
+                margin-top: 7.5px;
+                clip-path: polygon(50% 0%, 100% 70%, 100% 100%, 0% 100%, 0% 70%);
+            }
+            #con{
+                display: flex;
+                flex-direction: column;
+                background-color: #202020;
+                padding: 20px;
+                border-radius: 20px;
+                border: 1px solid #333333;
+                height: fit-content;
+                width: fit-content;
+            }
+            #top{
+                height: 60vh;
+                flex: 1;
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border-radius: 20px;
+                background-color: #333333;
+                aspect-ratio: 1;
+            }
+            #bottom{
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            canvas{
+                position: absolute;
+                max-width: 100%;
+                max-height: 100%;
+                image-rendering: pixelated;
+            }
+            .horizontal-con{
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                font-size: 15px;
+            }
+            input[type="range"] {
+                flex: 1;
+            }
+            #download{
+                background-color: #a551ff2f;
+                border: 2px solid #a551ff;
+                padding: 7px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 16px;
+                color: #a551ff;
+                cursor: pointer;
+                transition: 0.1s;
+            }
+            #download:hover{
+                background-color: #a551ff;
+                color: white;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="logo">
+            <img src="assets/logo.png">
+            Raster Draw
         </div>
-        <div id="bottom">
-            <input type="range" id="pixel-size" min="1" value="1" max="100" oninput="resizeCanvas(this.value)">
-            <button id="download">Download Image</button>
+        <div id="con">
+            <div id="top">
+                <canvas id="image"></canvas>
+            </div>
+            <div id="bottom">
+                <div class="horizontal-con">
+                    Pixel size : <input type="range" id="pixel-size" min="1" value="1" max="100" onchange="resizeCanvas()">
+                </div>
+                <div class="horizontal-con">
+                    Colors number : <input type="range" id="colors-number" min="1" onchange="resizeCanvas()">
+                </div>
+                <button id="download" onclick="downloadImage()">Download Image</button>
+            </div>
         </div>
-    </div>
-    <script>
-        var canvas = document.querySelector("#image")
-        var c = canvas.getContext("2d")
-        c.imageSmoothingEnabled = false
-        var image = new Image()
-        var request = indexedDB.open("image", 1)
-        request.onsuccess = (e) => {
-            var db = e.target.result
-            var data = db.transaction("src", "readonly")
-            var getRequest = data.objectStore("src").get(1)
+        <script>
+            var canvas = document.querySelector("#image")
+            var c = canvas.getContext("2d")
+            c.imageSmoothingEnabled = false
+            var image = new Image()
+            var type, file_name
+            var request = indexedDB.open("image", 1)
+            request.onsuccess = (e) => {
+                var db = e.target.result
+                var data = db.transaction("src", "readonly")
+                var getRequest = data.objectStore("src").get(1)
 
-            getRequest.onsuccess = () => {
-                var result = getRequest.result
-                var file = result.image
-                image.src = URL.createObjectURL(file)
+                getRequest.onsuccess = () => {
+                    var result = getRequest.result
+                    var file = result.image
+                    file_name = file.name
+                    type = file.type
+                    image.src = URL.createObjectURL(file)
+                    
+                }
+            }
+            image.onload = () => {
+                initCanvas()
+            }
+
+            function initCanvas() {
+                canvas.width = image.width
+                canvas.height = image.height
+                c = canvas.getContext("2d")
+                c.drawImage(image, 0, 0)
+                if (image.width > image.height) {
+                    canvas.style.width = "100%"
+                }
+                else {
+                    canvas.style.height = "100%"
+                }
+                document.querySelector("#colors-number").max = canvas.width * canvas.height
+                document.querySelector("#colors-number").value = canvas.width * canvas.height
+            }
+            function resizeCanvas() {
+                var value = document.querySelector("#pixel-size").value
+                var pixelSize = parseInt(value)
+                canvas.width = Math.floor(image.width / pixelSize)
+                canvas.height = Math.floor(image.height / pixelSize)
+                c = canvas.getContext("2d")
+                c.imageSmoothingEnabled = false
+                c.drawImage(image, 0, 0, canvas.width, canvas.height)
+                updateColors()
+            }
+            function updateColors() {
+                var cells_count = canvas.width * canvas.height
+                if (cells_count > 262144 || document.querySelector("#colors-number").value == document.querySelector("#colors-number").max) {
+                    return
+                }
+                var colors = {}
+                var canvas_image = c.getImageData(0, 0, canvas.width, canvas.height)
+                var data = canvas_image.data
+                for (var i = 0; i < data.length; i += 4) {
+                    var key = data[i] + "," + data[i + 1] + "," + data[i + 2]
+                    if (!colors[key]) {
+                        colors[key] = 0
+                    }
+                    colors[key] ++
+                }
+                var count = Object.keys(colors).length
+                if (count < document.querySelector("#colors-number").value ) {
+                    document.querySelector("#colors-number").value = count
+                }
+                document.querySelector("#colors-number").max = count
+                colors = Object.entries(colors).sort((a, b) => b[1] - a[1])
+                var new_colors = []
+                for (var i = 0; i < document.querySelector("#colors-number").value; i++) {
+                    new_colors.push(colors[i][0].split(",").map(Number))
+                }
                 
-            }
-        }
-        image.onload = () => {
-            initCanvas()
-        }
+                for (var i = 0; i < data.length; i += 4) {
+                    var distance = 442
+                    var color = undefined
 
-        function initCanvas() {
-            canvas.width = image.width
-            canvas.height = image.height
-            var c = canvas.getContext("2d")
-            c.drawImage(image, 0, 0)
-            if (image.width > image.height) {
-                canvas.style.width = "100%"
+                    new_colors.forEach(new_color => {
+                        var dist = getColorDistance(data.slice(i, i + 3), new_color)
+                        if (dist <= distance) {
+                            color = new_color
+                            distance = dist
+                        }
+                    })
+
+                    data[i] = color[0]
+                    data[i + 1] = color[1]
+                    data[i + 2] = color[2]
+                    
+                }
+                c.putImageData(canvas_image, 0, 0)
             }
-            else {
-                canvas.style.height = "100%"
+
+            function getColorDistance(c1, c2) {
+                return Math.sqrt(Math.pow(c1[0] - c2[0], 2) + Math.pow(c1[1] - c2[1], 2) + Math.pow(c1[2] - c2[2], 2))
             }
-        }
-        function resizeCanvas(value) {
-            var pixelSize = parseInt(value)
-            canvas.width = Math.floor(image.width / pixelSize)
-            canvas.height = Math.floor(image.height / pixelSize)
-            var c = canvas.getContext("2d")
-            c.drawImage(image, 0, 0, canvas.width, canvas.height)
-        }
-        
-    </script>
-</body>
-</html>
+            function downloadImage() {
+                var virtual = document.createElement("canvas")
+                virtual.width = canvas.width * 10
+                virtual.height = canvas.height * 10
+                var vc = virtual.getContext("2d")
+                vc.imageSmoothingEnabled = false
+                vc.drawImage(canvas, 0, 0, virtual.width, virtual.height)
+                var url = virtual.toDataURL(type)
+                var link = document.createElement("a")
+                link.href = url
+                link.download = file_name
+                link.click()
+            }
+        </script>
+    </body>
+    </html>
