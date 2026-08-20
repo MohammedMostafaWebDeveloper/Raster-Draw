@@ -324,7 +324,7 @@
         </div>
         <button id="close" onclick="document.querySelector('#error').style.translate = 'calc(100% + 15px) 0px'"><img src="assets/Close.svg"></button>
     </div>
-    <input id="upload-file" type="file" style="display: none;" accept=".rasart">
+    <input id="upload-file" type="file" style="display: none;" accept=".rasart" onchange="uploadProject(this)">
     <script src="scripts/index.js"></script>
     <script src="scripts/tools.js"></script>
 </body>

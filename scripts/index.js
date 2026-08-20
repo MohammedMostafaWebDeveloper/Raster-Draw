@@ -1580,3 +1580,23 @@ function downloadRasart() {
 
     URL.revokeObjectURL(url)
 }
+function uploadProject(element) {
+    var file = element.files[0]
+    if (file) {
+        var request = indexedDB.open("file", 1)
+        request.onupgradeneeded = (event) => {
+            var db = event.target.result
+
+            db.createObjectStore("data", {keyPath: "id"})
+        }
+        request.onsuccess = (event) => {
+            var db = event.target.result
+            var edit = db.transaction("data", "readwrite")
+            edit.objectStore("data").put({id: 1, file: file})
+            edit.oncomplete = () => {
+                sessionStorage.setItem("state", "upload")
+                window.location.reload()
+            }
+        }
+    }
+}
