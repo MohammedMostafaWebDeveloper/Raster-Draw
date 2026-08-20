@@ -21,7 +21,7 @@ A simple online pixel art editor (no need to download)
 <img width="1366" height="640" alt="image" src="https://github.com/user-attachments/assets/fa803903-641d-4310-8b4b-bcaeb5f8693d" />
 
 # How to use?
-To use this app, you can visit the page https://mohammedmostafawebdeveloper.github.io/Raster-Draw/ or download it and open index.html file with live server to access it offline
+To use this app, you can visit the page https://mohammedmostafawebdeveloper.github.io/Raster-Draw/ or download it and open index.html file with live server by downloading live server extension on VScode and running it on index.html file of this repository to access it offline
 
 # Tools
 ### Landing page
